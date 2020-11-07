@@ -1,7 +1,7 @@
 # raytracer_cuda
 A C++ rendering framework using raytracing and based on cuda  (WIP)
 
-The project will be split into the following steps:
+The project will be split into the following steps:\
 1 - Writing the base cuda code for the necessary algebra (vector3d, basic shapes such as spheres and cubes)\
 2 - Render a simple scene with no materials. The rendering result will be a jpeg or ppm image\
 3 - Add more shapes and materials,\
