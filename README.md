@@ -1,4 +1,4 @@
-# raytracer_cuda
+# raytracing_renderer_cuda
 A C++ rendering framework using raytracing and based on cuda  (WIP)
 
 The project will be split into the following steps:\
