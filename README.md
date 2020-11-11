@@ -13,3 +13,10 @@ The project will be split into the following steps:\
 ## Current state
 The renderer only generates a gradient with vertical black lines at odd pixels along x using one kernel.
 ![render](render.jpg)
+
+## How to run
+```sh
+cd raytracing_renderer_cuda
+make all
+make profile
+```
