@@ -1,4 +1,4 @@
-#include "common.h"
+﻿#include "common.h"
 #include "vec3.h"
 #include "ray.h"
 
@@ -24,7 +24,30 @@ __host__ __device__ constexpr int XY(int x, int y) {
     return y * WIDTH + x;
 }
 
+__device__ bool hit_sphere(const vec3& center, float radius, const ray& r) {
+    vec3 oc = r.origin() - center; // A - C
+    // 1 - dot((p(​ t) - c)​ ,(p(​ t) - c​)) = R*R
+    // 2 - dot((A​ + t*B ​- C)​ ,(A​ + t*B​ - C​)) = R*R (A is origin, B is direction)
+    // 3 - t*t*dot(B,​ B)​ + 2*t*dot(B,A​-C​) + dot(A-C,A​-C​) - R*R = 0
+    // we solve it as a 2nd degree polynomial with delta = b^2 - 4*a*c
+    float a = vec3::dot(r.direction(), r.direction());
+    float b = 2.f * vec3::dot(oc, r.direction());
+    float c = vec3::dot(oc, oc) - radius * radius;
+    float delta = b * b - 4 * a * c;
+    return (delta > 0);
+}
+
 __device__ vec3 color(const ray& r) {
+    if (hit_sphere(vec3(0.5f, -0.f, -0.8f), 0.3, r)) {
+        return vec3(0.1f, 0.7f, 0.1f);
+    }
+    if (hit_sphere(vec3(0.f, 0.f, -1.f), 0.5, r)) {
+        return vec3(0.1f, 0.1f, 0.7f);
+    }
+    if (hit_sphere(vec3(-0.5f, -0.f, -1.f), 0.3, r)) {
+        return vec3(0.7f, 0.1f, 0.1f);
+    }
+
     vec3 unit_direction = vec3::unit_vector(r.direction());
     float t = 0.5f * (unit_direction.y() + 1.f);
     //vec3 result = (1.f - t) * vec3(1.f, 1.f, 1.f) + t * vec3(0.5f, 0.7f, 1.f);
