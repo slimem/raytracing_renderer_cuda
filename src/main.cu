@@ -48,7 +48,7 @@ __device__ vec3 color(const ray& r) {
         return vec3(0.7f, 0.1f, 0.1f);
     }
 
-    vec3 unit_direction = vec3::unit_vector(r.direction());
+    vec3 unit_direction = vec3::normalize(r.direction());
     float t = 0.5f * (unit_direction.y() + 1.f);
     //vec3 result = (1.f - t) * vec3(1.f, 1.f, 1.f) + t * vec3(0.5f, 0.7f, 1.f);
     vec3 result = (1.f - t) * vec3(1.f, 1.f, 1.f) + t * vec3(0.3f, 0.5f, 0.8f);

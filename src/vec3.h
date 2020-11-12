@@ -11,6 +11,16 @@ public:
         _v[1] = v2;
         _v[2] = v3;
     }
+    
+    // TODO: Use __saturatef to saturate float values
+    __host__ __device__ constexpr bool is_null() const {
+        // IEEE-754
+        return (
+            (_v[0] == 0.f)
+            && (_v[1] == 0.f)
+            && (_v[2] == 0.f)
+            );
+    }
 
     // the following methods just make the code more readable, but they
     // mostly do the same thing
@@ -151,12 +161,18 @@ public:
 #endif
     }
 
-    __host__ __device__ constexpr void make_unit_vector() {
-        *this /= this->length();
+    __host__ __device__ constexpr void normalize() {
+        if (!is_null()) {
+            *this /= this->length();
+        }
     }
 
-    __host__ __device__ static inline vec3 unit_vector(vec3 v) {
-        return v / v.length();
+    __host__ __device__ static inline vec3 normalize(vec3 v) {
+        if (v.is_null()) {
+            return v;
+        } else {
+            return v / v.length();
+        }
     }
 
     // dot product
