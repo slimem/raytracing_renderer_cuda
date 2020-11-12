@@ -11,7 +11,7 @@ The project will be split into the following steps:\
 6 - Profit
 
 ## Current state
-The renderer generates a vertical blue gradient using 1200x600 rays 
+The renderer generates three circles using 1200x600 rays 
 ![render](render.jpg)
 
 ## How to run
