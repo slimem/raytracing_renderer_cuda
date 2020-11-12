@@ -9,3 +9,14 @@ The project will be split into the following steps:\
 5 - A aws cloud based solution where the client draws a scene in a web browser (using webGL) and sends a json file that descripes the scene (rest api) to a server (aws ec2 that supports cuda)... maybe the server will be based on **asio**\
 5 - ?? \
 6 - Profit
+
+## Current state
+The renderer only generates a gradient with vertical black lines at odd pixels along x using one kernel.
+![render](render.jpg)
+
+## How to run
+```sh
+cd raytracing_renderer_cuda
+make all
+make profile
+```
