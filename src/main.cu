@@ -1,5 +1,5 @@
-#include <iostream>
-#include <chrono>
+#include "common.h"
+#include "vec3.h"
 
 // checkCudaErrors from helper_cuda.h in CUDA examples
 // remember, the # converts the definition to a char*
@@ -29,7 +29,7 @@ __host__ __device__ constexpr int XY(int x, int y) {
 #define THREAD_SIZE_X 8
 #define THREAD_SIZE_Y 8
 
-__global__ void render(float* frameBuffer, int width, int height) {
+__global__ void render(vec3* frameBuffer, int width, int height) {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     int j = threadIdx.y + blockIdx.y * blockDim.y;
 
@@ -38,15 +38,11 @@ __global__ void render(float* frameBuffer, int width, int height) {
         return;
     }
 
-    int index = XY(i, j) * 3;
-    if (i % 2) {
-        frameBuffer[index + 0] = float(i) / width;
-        frameBuffer[index + 1] = float(j) / height;
-        frameBuffer[index + 2] = float(j) / (width + height);
+    int index = XY(i, j);
+    if (j % 2 && i % 2) {
+        frameBuffer[index] = vec3(float(i) / width, float(j) / height, float(j) / (width + height));
     } else {
-        frameBuffer[index + 0] = 0;
-        frameBuffer[index + 1] = 0;
-        frameBuffer[index + 2] = 0;
+        frameBuffer[index] = vec3();
     }
 }
 
@@ -56,9 +52,9 @@ int main() {
     std::cerr << "in " << THREAD_SIZE_X << "x" << THREAD_SIZE_Y << " blocks.\n";
 
     // RGB values for each pixel
-    size_t frameBufferSize = 3 * WIDTH * HEIGHT * sizeof(float);
+    size_t frameBufferSize = WIDTH * HEIGHT * sizeof(vec3);
 
-    float* frameBuffer;
+    vec3* frameBuffer;
     // allocate unified memory that holds the size of our image
     // remember, cudaMallocManaged waits for void**
     checkCudaErrors(cudaMallocManaged((void**)&frameBuffer, frameBufferSize));
@@ -84,10 +80,10 @@ int main() {
     std::cout << "P3\n" << WIDTH << " " << HEIGHT << "\n255\n";
     for (int j = HEIGHT - 1; j >= 0; j--) {
         for (int i = 0; i < WIDTH; i++) {
-            size_t index = XY(i, j) * 3;
-            float r = frameBuffer[index + 0];
-            float g = frameBuffer[index + 1];
-            float b = frameBuffer[index + 2];
+            size_t index = XY(i, j);
+            float r = frameBuffer[index].r();
+            float g = frameBuffer[index].g();
+            float b = frameBuffer[index].b();
             int ir = int(255.99 * r);
             int ig = int(255.99 * g);
             int ib = int(255.99 * b);
