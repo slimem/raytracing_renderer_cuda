@@ -211,6 +211,98 @@ public:
         is >> v._v[0] >> v._v[1] >> v._v[2];
         return is;
     }
+
+    __host__ __device__ friend inline vec3 operator+(const vec3& v1, const vec3& v2) {
+#ifdef __CUDA_ARCH__
+        return
+            vec3(
+                __fadd_rz(v1._v[0], v2._v[0]),
+                __fadd_rz(v1._v[1], v2._v[1]),
+                __fadd_rz(v1._v[2], v2._v[2])
+            );
+#else
+        return vec3(v1._v[0] + v2._v[0], v1._v[1] + v2._v[1], v1._v[2] + v2._v[2]);
+#endif
+    }
+
+    __host__ __device__ friend inline vec3 operator-(const vec3& v1, const vec3& v2) {
+#ifdef __CUDA_ARCH__
+        return
+            vec3(
+                __fsub_rz(v1._v[0], v2._v[0]),
+                __fsub_rz(v1._v[1], v2._v[1]),
+                __fsub_rz(v1._v[2], v2._v[2])
+            );
+#else
+        return vec3(v1._v[0] - v2._v[0], v1._v[1] - v2._v[1], v1._v[2] - v2._v[2]);
+#endif
+    }
+
+    __host__ __device__ friend inline vec3 operator*(const vec3& v1, const vec3& v2) {
+#ifdef __CUDA_ARCH__
+        return
+            vec3(
+                __fmul_rz(v1._v[0], v2._v[0]),
+                __fmul_rz(v1._v[1], v2._v[1]),
+                __fmul_rz(v1._v[2], v2._v[2])
+            );
+#else
+        return vec3(v1._v[0] * v2._v[0], v1._v[1] * v2._v[1], v1._v[2] * v2._v[2]);
+#endif
+    }
+
+    __host__ __device__ friend inline vec3 operator/(const vec3& v1, const vec3& v2) {
+#ifdef __CUDA_ARCH__
+        return
+            vec3(
+                __fdiv_rz(v1._v[0], v2._v[0]),
+                __fdiv_rz(v1._v[1], v2._v[1]),
+                __fdiv_rz(v1._v[2], v2._v[2])
+            );
+#else
+        return vec3(v1._v[0] / v2._v[0], v1._v[1] / v2._v[1], v1._v[2] / v2._v[2]);
+#endif
+    }
+
+    __host__ __device__ friend inline vec3 operator*(float t, const vec3& v) {
+#ifdef __CUDA_ARCH__
+        return
+            vec3(
+                __fmul_rz(v._v[0], t),
+                __fmul_rz(v._v[1], t),
+                __fmul_rz(v._v[2], t)
+            );
+#else
+        return vec3(t * v._v[0], t * v._v[1], t * v._v[2]);
+#endif
+    }
+
+    __host__ __device__ friend inline vec3 operator*(const vec3& v, float t) {
+#ifdef __CUDA_ARCH__
+        return
+            vec3(
+                __fmul_rz(v._v[0], t),
+                __fmul_rz(v._v[1], t),
+                __fmul_rz(v._v[2], t)
+            );
+#else
+        return vec3(t * v._v[0], t * v._v[1], t * v._v[2]);
+#endif
+    }
+
+    __host__ __device__ friend inline vec3 operator/(vec3 v, float t) {
+#ifdef __CUDA_ARCH__
+        return
+            vec3(
+                __fdiv_rz(v._v[0], t),
+                __fdiv_rz(v._v[1], t),
+                __fdiv_rz(v._v[2], t)
+            );
+#else
+        return vec3(v._v[0] / t, v._v[1] / t, v._v[2] / t);
+#endif
+    }
+
 private:
     float _v[3];
 };
