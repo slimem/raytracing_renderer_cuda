@@ -124,14 +124,12 @@ public:
     }
 
     __host__ __device__ constexpr float length() const {
-#ifdef __CUDA_ARCH__
+#if __CUDA_ARCH__
         return
             __fsqrt_rz(
-                __fmaf_rz(
-                    __fmul_rz(_v[0], _v[0]),
-                    __fmul_rz(_v[1], _v[1]),
-                    __fmul_rz(_v[2], _v[2])
-                )
+                __fmul_rz(_v[0], _v[0])
+                + __fmul_rz(_v[1], _v[1])
+                + __fmul_rz(_v[2], _v[2])    
             );
 #else
         return sqrt(
@@ -143,10 +141,10 @@ public:
     __host__ __device__ constexpr float sq_length() const {
 #ifdef __CUDA_ARCH__
         return 
-            __fmaf_rz(
-                __fmul_rz(_v[0], _v[0]),
-                __fmul_rz(_v[1], _v[1]),
-                __fmul_rz(_v[2], _v[2])
+            (
+                __fmul_rz(_v[0], _v[0])
+                + __fmul_rz(_v[1], _v[1])
+                + __fmul_rz(_v[2], _v[2])
             );
 #else
         return (_v[0] * _v[0] + _v[1] * _v[1] + _v[2] * _v[2]);
@@ -158,17 +156,17 @@ public:
     }
 
     __host__ __device__ static inline vec3 unit_vector(vec3 v) {
-        return v /= v.length();
+        return v / v.length();
     }
 
     // dot product
     __host__ __device__ static constexpr float dot(const vec3& v1, const vec3& v2) {
 #ifdef __CUDA_ARCH__
         return
-            __fmaf_rz(
-                __fmul_rz(v1._v[0], v2._v[0]),
-                __fmul_rz(v1._v[1], v2._v[1]),
-                __fmul_rz(v1._v[2], v2._v[2])
+            (
+                __fmul_rz(v1._v[0], v2._v[0])
+                + __fmul_rz(v1._v[1], v2._v[1])
+                + __fmul_rz(v1._v[2], v2._v[2])
             );
 #else
         return v1._v[0] * v2._v[0] + v1._v[1] * v2._v[1] + v1._v[2] * v2._v[2];
