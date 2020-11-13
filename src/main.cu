@@ -1,6 +1,8 @@
 ﻿#include "common.h"
 #include "vec3.h"
 #include "ray.h"
+#include "sphere.h"
+#include "hitable_list.h"
 
 // checkCudaErrors from helper_cuda.h in CUDA examples
 // remember, the # converts the definition to a char*
@@ -18,6 +20,7 @@ void check_cuda(cudaError_t result, char const* const func, const char* const fi
 
 #define WIDTH 1200
 #define HEIGHT 600
+
 
 // just to make things easier
 __host__ __device__ constexpr int XY(int x, int y) {
@@ -41,8 +44,17 @@ __device__ float hit_sphere(const vec3& center, float radius, const ray& r) {
     }
 }
 
-__device__ vec3 color(const ray& r) {
-    float h1 = hit_sphere(vec3(0.5f, -0.f, -0.8f), 0.3, r);
+__device__ vec3 color(const ray& r, hitable_object** world) {
+    hit_record hrec;
+    if ((*world)->hit(r, 0.f, FLT_MAX, hrec)) {
+        return 0.5f * vec3(hrec.n().x() + 1.0f, hrec.n().y() + 1.0f, hrec.n().z() + 1.0f);
+    } else {
+        vec3 unit_direction = vec3::normalize(r.direction());
+        float t = 0.5f * (unit_direction.y() + 1.0f);
+        return (1.0f - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
+    }
+
+    /*float h1 = hit_sphere(vec3(0.5f, -0.f, -0.8f), 0.3, r);
     if (h1 > 0.f) {
         vec3 normal = vec3::normalize(r.point_at_parameter(h1) - vec3(0.5f, -0.f, -0.8f));
         return 0.5f * vec3(normal.x() + 1.f, normal.y() + 1.f, normal.z() + 1.f);
@@ -59,19 +71,19 @@ __device__ vec3 color(const ray& r) {
         vec3 normal = vec3::normalize(r.point_at_parameter(h1) - vec3(0.f, 0.f, -1.f));
         return 0.5f * vec3(normal.x() + 1.f, normal.y() + 1.f, normal.z() + 1.f);
         //return vec3(0.7f, 0.1f, 0.1f);
-    }
+    }*/
 
-    vec3 unit_direction = vec3::normalize(r.direction());
+    /*vec3 unit_direction = vec3::normalize(r.direction());
     float t = 0.5f * (unit_direction.y() + 1.f);
     //vec3 result = (1.f - t) * vec3(1.f, 1.f, 1.f) + t * vec3(0.5f, 0.7f, 1.f);
-    vec3 result = (1.f - t) * vec3(1.f, 1.f, 1.f) + t * vec3(0.3f, 0.5f, 0.8f);
+    vec3 result = (1.f - t) * vec3(1.f, 1.f, 1.f) + t * vec3(0.3f, 0.5f, 0.8f);*/
     // used for debug
     /*
         printf("OK: t = %f RDIR=%f,%f,%f UNITV=%f,%f,%f\n", t,
             r.direction().r(), r.direction().g(), r.direction().b(),
             unit_direction.r(), unit_direction.g(), unit_direction.b());
     }*/
-    return result;
+    
 }
 
 // we will divide the work on the GPU into blocks of 8x8 threads beacause
@@ -81,7 +93,8 @@ __device__ vec3 color(const ray& r) {
 #define THREAD_SIZE_Y 8
 
 __global__ void render(vec3* frameBuffer, int width, int height,
-    vec3 lowerLeftCorner, vec3 horizontal, vec3 vertical, vec3 origin) {
+    vec3 lowerLeftCorner, vec3 horizontal, vec3 vertical, vec3 origin,
+    hitable_object** world) {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     int j = threadIdx.y + blockIdx.y * blockDim.y;
 
@@ -93,7 +106,7 @@ __global__ void render(vec3* frameBuffer, int width, int height,
     float u = float(i) / float(width);
     float v = float(j) / float(height);
     ray r(origin, lowerLeftCorner + u * horizontal + v * vertical);
-    frameBuffer[index] = color(r);
+    frameBuffer[index] = color(r, world);
     // for debug purposes
     /*
     if (j % 2 && i % 2) {
@@ -101,6 +114,20 @@ __global__ void render(vec3* frameBuffer, int width, int height,
     } else {
         frameBuffer[index] = vec3();
     }*/
+}
+
+__global__ void create_world(hitable_object** d_list, hitable_object** d_world) {
+    if (threadIdx.x == 0 && blockIdx.x == 0) {
+        *(d_list) = new sphere(vec3(0, 0, -1), 0.5);
+        *(d_list + 1) = new sphere(vec3(0, -100.5, -1), 100);
+        *d_world = new hitable_list(d_list, 2);
+    }
+}
+
+__global__ void _free(hitable_object** d_list, hitable_object** d_world) {
+    delete* (d_list);
+    delete* (d_list + 1);
+    delete* d_world;
 }
 
 int main() {
@@ -116,6 +143,16 @@ int main() {
     // remember, cudaMallocManaged waits for void**
     checkCudaErrors(cudaMallocManaged((void**)&frameBuffer, frameBufferSize));
 
+    // allocate hitable objects in the device
+    hitable_object** d_hitableObjects;
+    checkCudaErrors(cudaMalloc((void**)&d_hitableObjects, 2 * sizeof(hitable_object*)));
+    hitable_object** d_world;
+    checkCudaErrors(cudaMalloc((void**)&d_world, sizeof(hitable_object*)));
+    // remember, construction is done in 1 block, 1 thread
+    create_world<<<1, 1>>> (d_hitableObjects, d_world);
+    checkCudaErrors(cudaGetLastError());
+    checkCudaErrors(cudaDeviceSynchronize());
+
     auto start = std::chrono::system_clock::now();
     
     // remember: always round with + 1
@@ -127,7 +164,8 @@ int main() {
     vec3 vertical(0.f, 2.f, 0.f);
     vec3 origin(0.f, 0.f, 0.f);
     render<<<blocks, threads>>>(frameBuffer, WIDTH, HEIGHT,
-        loweLeftCorner, horizontal, vertical, origin);
+        loweLeftCorner, horizontal, vertical, origin,
+        d_world);
 
     checkCudaErrors(cudaGetLastError());
     // block host until all device threads finish
@@ -153,7 +191,14 @@ int main() {
         }
     }
 
+    // clean everything
+    checkCudaErrors(cudaDeviceSynchronize());
+    _free<<<1, 1>>>(d_hitableObjects, d_world);
+    checkCudaErrors(cudaGetLastError());
+    checkCudaErrors(cudaFree(d_hitableObjects));
+    checkCudaErrors(cudaFree(d_world));
     checkCudaErrors(cudaFree(frameBuffer));
 
+    cudaDeviceReset();
     return 0;
 }
