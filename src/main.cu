@@ -24,7 +24,7 @@ __host__ __device__ constexpr int XY(int x, int y) {
     return y * WIDTH + x;
 }
 
-__device__ bool hit_sphere(const vec3& center, float radius, const ray& r) {
+__device__ float hit_sphere(const vec3& center, float radius, const ray& r) {
     vec3 oc = r.origin() - center; // A - C
     // 1 - dot((p(​ t) - c)​ ,(p(​ t) - c​)) = R*R
     // 2 - dot((A​ + t*B ​- C)​ ,(A​ + t*B​ - C​)) = R*R (A is origin, B is direction)
@@ -34,18 +34,31 @@ __device__ bool hit_sphere(const vec3& center, float radius, const ray& r) {
     float b = 2.f * vec3::dot(oc, r.direction());
     float c = vec3::dot(oc, oc) - radius * radius;
     float delta = b * b - 4 * a * c;
-    return (delta > 0);
+    if (delta < 0) {
+        return -1.f;
+    } else {
+        return ((-b - __fsqrt_rz(delta)) / (2.f * a));
+    }
 }
 
 __device__ vec3 color(const ray& r) {
-    if (hit_sphere(vec3(0.5f, -0.f, -0.8f), 0.3, r)) {
-        return vec3(0.1f, 0.7f, 0.1f);
+    float h1 = hit_sphere(vec3(0.5f, -0.f, -0.8f), 0.3, r);
+    if (h1 > 0.f) {
+        vec3 normal = vec3::normalize(r.point_at_parameter(h1) - vec3(0.5f, -0.f, -0.8f));
+        return 0.5f * vec3(normal.x() + 1.f, normal.y() + 1.f, normal.z() + 1.f);
+        //return vec3(0.1f, 0.7f, 0.1f);
     }
-    if (hit_sphere(vec3(0.f, 0.f, -1.f), 0.5, r)) {
-        return vec3(0.1f, 0.1f, 0.7f);
+    float h2 = hit_sphere(vec3(0.f, 0.f, -1.f), 0.5, r);
+    if (h2 > 0.f) {
+        vec3 normal = vec3::normalize(r.point_at_parameter(h1) - vec3(0.f, 0.f, -1.f));
+        return 0.5f * vec3(normal.x() + 1.f, normal.y() + 1.f, normal.z() + 1.f);
+        //return vec3(0.1f, 0.1f, 0.7f);
     }
-    if (hit_sphere(vec3(-0.5f, -0.f, -1.f), 0.3, r)) {
-        return vec3(0.7f, 0.1f, 0.1f);
+    float h3 = hit_sphere(vec3(-0.5f, -0.f, -1.f), 0.3, r);
+    if (h3 > 0.f) {
+        vec3 normal = vec3::normalize(r.point_at_parameter(h1) - vec3(0.f, 0.f, -1.f));
+        return 0.5f * vec3(normal.x() + 1.f, normal.y() + 1.f, normal.z() + 1.f);
+        //return vec3(0.7f, 0.1f, 0.1f);
     }
 
     vec3 unit_direction = vec3::normalize(r.direction());
