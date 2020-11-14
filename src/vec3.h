@@ -171,6 +171,18 @@ public:
 #endif
     }
 
+    __host__ __device__ inline vec3 gamma_correct() const {
+#ifdef USE_INTRINSICS
+        return vec3(
+            __fsqrt_rz(_v[0]),
+            __fsqrt_rz(_v[1]),
+            __fsqrt_rz(_v[2])
+        );
+#else
+        return vec3(sqrt(_v[0]), sqrt(_v[1]), sqrt(_v[2]));
+#endif
+    }
+
     __host__ __device__ constexpr void normalize() {
         if (!is_null()) {
             *this /= this->length();

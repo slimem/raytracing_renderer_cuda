@@ -38,15 +38,45 @@ __host__ __device__ constexpr int XY(int x, int y) {
     return y * WIDTH + x;
 }
 
-__device__ vec3 color(const ray& r, hitable_list** scene) {
-    hit_record hrec;
-    if ((*scene)->hit(r, 0.f, FLT_MAX, hrec)) {
-        return 0.5f * vec3(hrec.n().x() + 1.0f, hrec.n().y() + 1.0f, hrec.n().z() + 1.0f);
-    } else {
-        vec3 unit_direction = vec3::normalize(r.direction());
-        float t = 0.5f * (unit_direction.y() + 1.0f);
-        return (1.0f - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
+__device__ vec3 random_point_unit_sphere(curandState* rstate) {
+    vec3 point;
+    do {
+        // grab a random point and center it in
+        // the unit circle
+        // the random value is generated using the random state
+        // of the pixel calling the function
+        point = 2.f * vec3(
+            curand_uniform(rstate),
+            curand_uniform(rstate),
+            curand_uniform(rstate)
+        ) - vec3(1.f, 1.f, 1.f);
+
+    } while (point.sq_length() >= 1.f);
+    return point;
+}
+
+__device__ vec3 color(const ray& r, hitable_list** scene, curandState* rstate) {
+
+    // this section is a simple implementation for a diffuse material with a 50%
+    // attenuation at each bounce
+    ray curr_r = r;
+    float curr_attenuation = 1.f;
+    int bounces = 50;
+    for (int i = 0; i < bounces; ++i) {
+        hit_record hrec;
+        // 0.001 -> ignore hits near zero
+        if ((*scene)->hit(curr_r, 0.001f, FLT_MAX, hrec)) {
+            vec3 target = hrec.p() + hrec.n() + random_point_unit_sphere(rstate);
+            curr_attenuation *= 0.5f;
+            curr_r = ray(hrec.p(), target - hrec.p());
+        } else {
+            vec3 unit_direction = vec3::normalize(curr_r.direction());
+            float t = 0.5f * (unit_direction.y() + 1.0f);
+            vec3 v = (1.0f - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
+            return curr_attenuation * v;
+        }
     }
+    return vec3(); // exceeded recursion
 }
 
 __global__ void init_rand_state(curandState* randState, int width, int height) {
@@ -60,8 +90,14 @@ __global__ void init_rand_state(curandState* randState, int width, int height) {
 
     int index = XY(i, j);
     
-    // same seed for every thread
-    curand_init(SEED, index, 0, &randState[index]);
+    // same seed for every thread, very slow
+    //curand_init(SEED, index, 0, &randState[index]);
+
+    // different seed for each thread, fast
+    curand_init(SEED + index, 0, 0, &randState[index]);
+
+    // produces weird artifacts
+    //curand_init(SEED, 0, 0, &randState[index]);
 }
 
 __global__ void render(vec3* frameBuffer, int width, int height,
@@ -82,13 +118,16 @@ __global__ void render(vec3* frameBuffer, int width, int height,
     vec3 col;
 
     for (uint16_t sample = 0; sample < SAMPLES_PER_PIXEL; ++sample) {
+        // remember: random value is [0, 1[ 
         float u = float(i + curand_uniform(&rstate)) / float(width);
         float v = float(j + curand_uniform(&rstate)) / float(height);
         ray r = (*cam)->get_ray(u, v);
-        col += color(r, scene);
+        col += color(r, scene, &rstate);
     }
-
-    frameBuffer[index] = col / float(SAMPLES_PER_PIXEL);
+    col /= float(SAMPLES_PER_PIXEL);
+    // do gamma correction with gamma 2 => raise the color to the power of
+    // 1/gamma -> sqrt
+    frameBuffer[index] = col.gamma_correct();
 }
 
 // TODO: check for array boundary
