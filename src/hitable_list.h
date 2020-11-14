@@ -41,6 +41,8 @@ __device__
 hitable_list::~hitable_list() noexcept {
     for (uint32_t i = 0; i < _size; ++i) {
         printf("Deleting object at %p\n", _hitable_objects + i);
-        delete* (_hitable_objects + i);
+        delete ((sphere*)_hitable_objects[i]);
+        //printf("Material is %p\n", (hitable_list + i)->_m);
+        //delete* (_hitable_objects + i);
     }
 }

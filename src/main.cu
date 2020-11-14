@@ -4,7 +4,7 @@
 #include "sphere.h"
 #include "hitable_list.h"
 #include "camera.h"
-#include "curand_kernel.h"
+//#include "material.h"
 
 // remember, the # converts the definition to a char*
 #define checkCudaErrors(val) check_cuda( (val), #val, __FILE__, __LINE__)
@@ -21,6 +21,9 @@ inline void check_cuda(cudaError_t errcode, char const* const func, const char* 
 
 #define WIDTH 1200
 #define HEIGHT 600
+
+//#define WIDTH 32
+//#define HEIGHT 16
 
 #define SAMPLES_PER_PIXEL 100
 
@@ -60,15 +63,24 @@ __device__ vec3 color(const ray& r, hitable_list** scene, curandState* rstate) {
     // this section is a simple implementation for a diffuse material with a 50%
     // attenuation at each bounce
     ray curr_r = r;
-    float curr_attenuation = 1.f;
+    vec3 curr_attenuation(1.f, 1.f, 1.f);
     int bounces = 50;
     for (int i = 0; i < bounces; ++i) {
         hit_record hrec;
         // 0.001 -> ignore hits near zero
         if ((*scene)->hit(curr_r, 0.001f, FLT_MAX, hrec)) {
-            vec3 target = hrec.p() + hrec.n() + random_point_unit_sphere(rstate);
+            ray scattered;
+            vec3 attenuation;
+            if (hrec.m()->scatter(curr_r, scattered, hrec, attenuation, rstate)) {
+                curr_attenuation *= attenuation;
+                curr_r = scattered;
+            } else {
+                return vec3();
+            }
+
+            /*vec3 target = hrec.p() + hrec.n() + random_point_unit_sphere(rstate);
             curr_attenuation *= 0.5f;
-            curr_r = ray(hrec.p(), target - hrec.p());
+            curr_r = ray(hrec.p(), target - hrec.p());*/
         } else {
             vec3 unit_direction = vec3::normalize(curr_r.direction());
             float t = 0.5f * (unit_direction.y() + 1.0f);
@@ -77,6 +89,9 @@ __device__ vec3 color(const ray& r, hitable_list** scene, curandState* rstate) {
         }
     }
     return vec3(); // exceeded recursion
+    /*if ((col.r() < 0) || (col.g() < 0) || (col.b() < 0)) {
+    printf("ERROR: COL=%f,%f,%f\n", col.r(), col.g(), col.b());
+    }*/
 }
 
 __global__ void init_rand_state(curandState* randState, int width, int height) {
@@ -124,18 +139,48 @@ __global__ void render(vec3* frameBuffer, int width, int height,
         ray r = (*cam)->get_ray(u, v);
         col += color(r, scene, &rstate);
     }
+
+    
     col /= float(SAMPLES_PER_PIXEL);
-    // do gamma correction with gamma 2 => raise the color to the power of
-    // 1/gamma -> sqrt
+    // do gamma correction with gamma 2 => raise the color to the power of 1/2 (sqrt)
     frameBuffer[index] = col.gamma_correct();
+
+    // only for debug
+    //frameBuffer[index] = col.gamma_correct().saturate();
+
 }
 
 // TODO: check for array boundary
 __global__ void populate_scene(hitable_object** objects, hitable_list** scene, camera** cam) {
     if (threadIdx.x == 0 && blockIdx.x == 0) { // only call once
-        *(objects) = new sphere(vec3(0, 0, -1), 0.5);
-        *(objects + 1) = new sphere(vec3(0, -100.5, -1), 100);
-        *scene = new hitable_list(objects, 2);
+        // sphere 1
+        *(objects) = new sphere(
+            vec3(0, 0, -1),
+            0.5,
+            new lambertian(vec3(0.6, 0.1, 0.1))
+            //new lambertian(vec3(0.9, 0.15, 0.1))
+        );
+        // sphere 2
+        *(objects + 1) = new sphere(
+            vec3(0, -100.5, -1),
+            100,
+            new lambertian(vec3(0.1, 0.8, 0.2))
+        );
+        //sphere 3
+        *(objects + 2) = new sphere(
+            vec3(1, 0, -1),
+            0.5,
+            new metal(vec3(0.075, 0.461, 0.559), 0.1)
+            //new metal(vec3(0.475, 0.561, 0.659), 0.0)
+        );
+        //sphere 4
+        *(objects + 3) = new sphere(
+            vec3(-1, 0, -1),
+            0.5,
+            new metal(vec3(0.8, 0.8, 0.8), 0.5)
+        );
+
+        *scene = new hitable_list(objects, 4);
         *cam = new camera();
     }
 }
@@ -169,7 +214,7 @@ int main() {
     checkCudaErrors(cudaMallocManaged((void**)&frameBuffer_u, frameBufferSize));
 
     // allocate device memory
-    checkCudaErrors(cudaMalloc((void**)&hitableObjects_d, 2 * sizeof(hitable_object*)));
+    checkCudaErrors(cudaMalloc((void**)&hitableObjects_d, 4 * sizeof(hitable_object*)));
     checkCudaErrors(cudaMalloc((void**)&scene_d, sizeof(hitable_list*)));
     checkCudaErrors(cudaMalloc((void**)&camera_d, sizeof(camera*)));
 

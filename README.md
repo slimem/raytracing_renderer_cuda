@@ -11,11 +11,14 @@ The project will be split into the following steps:\
 6 - Profit
 
 ## Current state
+Three spheres with metal and lambertian materials. (1200x600 image size, 100 samples per pixel)
+![render](renders/lambertian_metal.jpg)
+
 Generate a sphere with diffuse material (1200x600 image size, 100 samples per pixel)
-![render](render_2.jpg)
+![render](renders/diffuse.jpg)
 
 Generate a sphere with normals (1200x600 image size, 100 samples per pixel)
-![render](render.jpg)
+![render](renders/normals.jpg)
 
 ## How to run
 ```sh

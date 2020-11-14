@@ -5,3 +5,4 @@
 #include <chrono>
 #include <math.h>
 #include <cfloat>
+#include "curand_kernel.h"

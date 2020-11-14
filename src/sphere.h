@@ -1,16 +1,20 @@
 ﻿#pragma once
 
 #include "hitable_object.h"
+#include "material.h"
 
 class sphere : public hitable_object {
 public:
     __device__ sphere() {};
-    __device__ sphere(vec3 center, float radius)
-        : _c(center), _r(radius) {};
+    __device__ sphere(vec3 center, float radius, const material* mat)
+        : _c(center), _r(radius), _m(mat) {};
     __device__ virtual bool hit(const ray& r, float tmin, float tmax, hit_record& hrec) const override;
+    __device__ ~sphere() noexcept;
+
 private:
     vec3 _c;
-    float _r;
+    float _r = 0.f;
+    const material* _m = nullptr;
 };
 
 __device__ bool
@@ -40,6 +44,8 @@ sphere::hit(const ray& r, float tmin, float tmax, hit_record& hrec) const {
             hrec.set_n((hrec.p() - _c) / _r);
             //printf(" --- CALCULATED NORMAL: %f,%f,%f\n", hrec.n().x(), hrec.n().y(), hrec.n().z());
             hrec.set_h(hit_object_type::SPHERE);
+
+            hrec.set_m(_m);
             return true;
         }
         // we use the same variable
@@ -49,9 +55,18 @@ sphere::hit(const ray& r, float tmin, float tmax, hit_record& hrec) const {
             hrec.set_p(r.point_at_parameter(t));
             hrec.set_n((hrec.p() - _c) / _r);
             hrec.set_h(hit_object_type::SPHERE);
+            hrec.set_m(_m);
             return true;
         }
     }
     
     return false;
+}
+
+__device__
+sphere::~sphere() noexcept {
+    if (_m) {
+        printf("Deleting material object at %p\n", _m);
+        delete _m;
+    }
 }
