@@ -11,7 +11,7 @@ The project will be split into the following steps:\
 6 - Profit
 
 ## Current state
-The renderer generates three circles with normals using 1200x600 rays 
+The renderer generates two circles with normals using 1200x600 rays 
 ![render](render.jpg)
 
 ## How to run
