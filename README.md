@@ -11,6 +11,9 @@ The project will be split into the following steps:\
 6 - Profit
 
 ## Current state
+Three spheres with dielectric (glass), metal and lambertian materials. (1200x600 image size, 100 samples per pixel)
+![render](renders/dielectric.jpg)
+
 Three spheres with metal and lambertian materials. (1200x600 image size, 100 samples per pixel)
 ![render](renders/lambertian_metal.jpg)
 

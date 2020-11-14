@@ -339,11 +339,6 @@ public:
 #endif
     }
 
-    __device__ static inline vec3 reflect(const vec3& v, const vec3& n) {
-        return v - 2.f * dot(v, n) * n;
-    }
-
-
     __device__ inline vec3 saturate() const {
 #ifdef USE_INTRINSICS
         return

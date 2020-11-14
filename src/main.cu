@@ -158,7 +158,7 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene, c
             vec3(0, 0, -1),
             0.5,
             new lambertian(vec3(0.6, 0.1, 0.1))
-            //new lambertian(vec3(0.9, 0.15, 0.1))
+
         );
         // sphere 2
         *(objects + 1) = new sphere(
@@ -170,14 +170,15 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene, c
         *(objects + 2) = new sphere(
             vec3(1, 0, -1),
             0.5,
+            //new dielectric(1.5)
             new metal(vec3(0.075, 0.461, 0.559), 0.1)
-            //new metal(vec3(0.475, 0.561, 0.659), 0.0)
         );
         //sphere 4
         *(objects + 3) = new sphere(
             vec3(-1, 0, -1),
             0.5,
-            new metal(vec3(0.8, 0.8, 0.8), 0.5)
+            new dielectric(1.5)
+            //new metal(vec3(0.8, 0.8, 0.8), 0.5)
         );
 
         *scene = new hitable_list(objects, 4);
