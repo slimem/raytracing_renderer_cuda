@@ -2,7 +2,13 @@
 
 #include "common.h"
 
-// A header only class for 3D vector
+#ifdef __CUDA_ARCH__
+#define USE_INTRINSICS
+#endif
+
+// A header only class for 3D vector that is used both by
+// the host and the device.
+// If it is used by the device, we use intrisics.
 class vec3 {
 public:
     __host__ __device__ vec3() {}
@@ -54,7 +60,7 @@ public:
     };
 
     __host__ __device__ constexpr vec3& operator+=(const vec3& v) {
-#ifdef __CUDA_ARCH__
+#ifdef USE_INTRINSICS
         _v[0] = __fadd_rz(_v[0], v._v[0]);
         _v[1] = __fadd_rz(_v[1], v._v[1]);
         _v[2] = __fadd_rz(_v[2], v._v[2]);
@@ -67,7 +73,7 @@ public:
     }
 
     __host__ __device__ constexpr vec3& operator-=(const vec3& v) {
-#ifdef __CUDA_ARCH__
+#ifdef USE_INTRINSICS
         _v[0] = __fsub_rz(_v[0], v._v[0]);
         _v[1] = __fsub_rz(_v[1], v._v[1]);
         _v[2] = __fsub_rz(_v[2], v._v[2]);
@@ -80,7 +86,7 @@ public:
     }
 
     __host__ __device__ constexpr vec3& operator*=(const vec3& v) {
-#ifdef __CUDA_ARCH__
+#ifdef USE_INTRINSICS
         _v[0] = __fmul_rz(_v[0], v._v[0]);
         _v[1] = __fmul_rz(_v[1], v._v[1]);
         _v[2] = __fmul_rz(_v[2], v._v[2]);
@@ -93,7 +99,7 @@ public:
     }
 
     __host__ __device__ constexpr vec3& operator/=(const vec3& v) {
-#ifdef __CUDA_ARCH__
+#ifdef USE_INTRINSICS
         _v[0] = __fdiv_rz(_v[0], v._v[0]);
         _v[1] = __fdiv_rz(_v[1], v._v[1]);
         _v[2] = __fdiv_rz(_v[2], v._v[2]);
@@ -106,7 +112,7 @@ public:
     }
 
     __host__ __device__ constexpr vec3& operator*=(const float f) {
-#ifdef __CUDA_ARCH__
+#ifdef USE_INTRINSICS
         _v[0] = __fmul_rz(_v[0], f);
         _v[1] = __fmul_rz(_v[1], f);
         _v[2] = __fmul_rz(_v[2], f);
@@ -119,7 +125,7 @@ public:
     }
 
     __host__ __device__ constexpr vec3& operator/=(const float f) {
-#ifdef __CUDA_ARCH__
+#ifdef USE_INTRINSICS
         float u = __fdiv_rz(1.0f, f);
         _v[0] = __fmul_rz(_v[0], u);
         _v[1] = __fmul_rz(_v[1], u);
@@ -134,7 +140,7 @@ public:
     }
 
     __host__ __device__ constexpr float length() const {
-#if __CUDA_ARCH__
+#ifdef USE_INTRINSICS
         return
             __fsqrt_rz(
                 __fmul_rz(_v[0], _v[0])
@@ -149,7 +155,7 @@ public:
     }
 
     __host__ __device__ constexpr float sq_length() const {
-#ifdef __CUDA_ARCH__
+#ifdef USE_INTRINSICS
         return 
             (
                 __fmul_rz(_v[0], _v[0])
@@ -177,7 +183,7 @@ public:
 
     // dot product
     __host__ __device__ static constexpr float dot(const vec3& v1, const vec3& v2) {
-#ifdef __CUDA_ARCH__
+#ifdef USE_INTRINSICS
         return
             (
                 __fmul_rz(v1._v[0], v2._v[0])
@@ -190,7 +196,7 @@ public:
     }
 
     __host__ __device__ static inline vec3 cross(const vec3& v1, const vec3& v2) {
-#ifdef __CUDA_ARCH__
+#ifdef USE_INTRINSICS
         return
             vec3(
                 __fsub_rz(
@@ -227,7 +233,7 @@ public:
     }
 
     __host__ __device__ friend inline vec3 operator+(const vec3& v1, const vec3& v2) {
-#ifdef __CUDA_ARCH__
+#ifdef USE_INTRINSICS
         return
             vec3(
                 __fadd_rz(v1._v[0], v2._v[0]),
@@ -240,7 +246,7 @@ public:
     }
 
     __host__ __device__ friend inline vec3 operator-(const vec3& v1, const vec3& v2) {
-#ifdef __CUDA_ARCH__
+#ifdef USE_INTRINSICS
         return
             vec3(
                 __fsub_rz(v1._v[0], v2._v[0]),
@@ -253,7 +259,7 @@ public:
     }
 
     __host__ __device__ friend inline vec3 operator*(const vec3& v1, const vec3& v2) {
-#ifdef __CUDA_ARCH__
+#ifdef USE_INTRINSICS
         return
             vec3(
                 __fmul_rz(v1._v[0], v2._v[0]),
@@ -266,7 +272,7 @@ public:
     }
 
     __host__ __device__ friend inline vec3 operator/(const vec3& v1, const vec3& v2) {
-#ifdef __CUDA_ARCH__
+#ifdef USE_INTRINSICS
         return
             vec3(
                 __fdiv_rz(v1._v[0], v2._v[0]),
@@ -279,7 +285,7 @@ public:
     }
 
     __host__ __device__ friend inline vec3 operator*(float t, const vec3& v) {
-#ifdef __CUDA_ARCH__
+#ifdef USE_INTRINSICS
         return
             vec3(
                 __fmul_rz(v._v[0], t),
@@ -292,7 +298,7 @@ public:
     }
 
     __host__ __device__ friend inline vec3 operator*(const vec3& v, float t) {
-#ifdef __CUDA_ARCH__
+#ifdef USE_INTRINSICS
         return
             vec3(
                 __fmul_rz(v._v[0], t),
@@ -305,7 +311,7 @@ public:
     }
 
     __host__ __device__ friend inline vec3 operator/(vec3 v, float t) {
-#ifdef __CUDA_ARCH__
+#ifdef USE_INTRINSICS
         return
             vec3(
                 __fdiv_rz(v._v[0], t),

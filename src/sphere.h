@@ -39,6 +39,7 @@ sphere::hit(const ray& r, float tmin, float tmax, hit_record& hrec) const {
             // the sphere radius
             hrec.set_n((hrec.p() - _c) / _r);
             //printf(" --- CALCULATED NORMAL: %f,%f,%f\n", hrec.n().x(), hrec.n().y(), hrec.n().z());
+            hrec.set_h(hit_object_type::SPHERE);
             return true;
         }
         // we use the same variable
@@ -47,6 +48,7 @@ sphere::hit(const ray& r, float tmin, float tmax, hit_record& hrec) const {
             hrec.set_t(t);
             hrec.set_p(r.point_at_parameter(t));
             hrec.set_n((hrec.p() - _c) / _r);
+            hrec.set_h(hit_object_type::SPHERE);
             return true;
         }
     }

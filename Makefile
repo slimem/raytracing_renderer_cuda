@@ -1,6 +1,8 @@
 CUDA_PATH?=/usr/local/cuda
 HOST_COMPILER=g++
-NVCC=$(CUDA_PATH)/bin/nvcc -ccbin $(HOST_COMPILER)
+#cpp17 is not supported yet for gcc host compiler
+CPP_VERSION=-std=c++14 
+NVCC=$(CUDA_PATH)/bin/nvcc $(CPP_VERSION) -ccbin $(HOST_COMPILER)
 
 # debug vs release
 NVCCFLAGS=
@@ -15,7 +17,7 @@ main.o:
 
 run: main
 	rm -f render.ppm
-	./main > render.ppm
+	./main
 
 convert: render.ppm
 	ppmtojpeg render.ppm > render.jpg
