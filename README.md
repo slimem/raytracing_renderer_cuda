@@ -11,10 +11,10 @@ The project will be split into the following steps:\
 6 - Profit
 
 ## Current state
-Generate a circle with diffuse material (1200x600 image size, 100 samples per pixel)
+Generate a sphere with diffuse material (1200x600 image size, 100 samples per pixel)
 ![render](render_2.jpg)
 
-Generate a circle with normals (1200x600 image size, 100 samples per pixel)
+Generate a sphere with normals (1200x600 image size, 100 samples per pixel)
 ![render](render.jpg)
 
 ## How to run
