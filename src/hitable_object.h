@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ray.h"
-#include <string_view>
 
 enum class hit_object_type {
     SPHERE,
