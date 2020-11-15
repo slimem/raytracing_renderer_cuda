@@ -4,6 +4,17 @@
 
 class utils {
 public:
+
+    __host__ __device__ static constexpr int XY(int x, int y) {
+        // change to intrinsic
+#ifdef __CUDA_ARCH__
+        // __fmaf_rz(x, y, z) returns x * y + z
+        return __fmaf_rz(y, WIDTH, x);
+#else
+        return y * WIDTH + x;
+#endif
+    }
+
     __device__ static vec3 random_point_unit_sphere(curandState* rstate);
 
     __device__ static inline vec3 reflect(const vec3& v, const vec3& n);

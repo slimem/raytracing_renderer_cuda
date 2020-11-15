@@ -19,72 +19,37 @@ inline void check_cuda(cudaError_t errcode, char const* const func, const char* 
     }
 }
 
-#define WIDTH 1200
-#define HEIGHT 600
-
-//#define WIDTH 32
-//#define HEIGHT 16
-
-#define SAMPLES_PER_PIXEL 1000
-#define BOUNCES 50
-#define SEED 1000
-
-// we will divide the work on the GPU into blocks of 8x8 threads beacause
-// 1 - can be multiplied to 32 so they can fit into warps easily
-// 2 - is small so it helps similar pixels do similar work
-#define THREAD_SIZE_X 8
-#define THREAD_SIZE_Y 8
-
-// just to make things easier
-__host__ __device__ constexpr int XY(int x, int y) {
-    // change to intrinsic
-    return y * WIDTH + x;
-}
-
-__device__ vec3 random_point_unit_sphere(curandState* rstate) {
-    vec3 point;
-    do {
-        // grab a random point and center it in
-        // the unit circle
-        // the random value is generated using the random state
-        // of the pixel calling the function
-        point = 2.f * vec3(
-            curand_uniform(rstate),
-            curand_uniform(rstate),
-            curand_uniform(rstate)
-        ) - vec3(1.f, 1.f, 1.f);
-
-    } while (point.sq_length() >= 1.f);
-    return point;
-}
-
 __device__ vec3 color(const ray& r, hitable_list** scene, curandState* rstate) {
 
     // this section is a simple implementation for a diffuse material with a 50%
     // attenuation at each bounce
     ray curr_r = r;
-    vec3 curr_attenuation(1.f, 1.f, 1.f);
+    vec3 curr_attenuation(1.f, .8f, .7f);
+    //vec3 curr_attenuation(0.067, 0.471, 0.576);
     for (int i = 0; i < BOUNCES; ++i) {
         hit_record hrec;
         // 0.001 -> ignore hits near zero
         if ((*scene)->hit(curr_r, 0.001f, FLT_MAX, hrec)) {
             ray scattered;
             vec3 attenuation;
+            vec3 emit = hrec.m()->emit() + vec3(0.1,0.1,0.1);
             if (hrec.m()->scatter(curr_r, scattered, hrec, attenuation, rstate)) {
-                curr_attenuation *= attenuation;
+                curr_attenuation = emit + attenuation*curr_attenuation;
                 curr_r = scattered;
             } else {
-                return vec3();
+                return emit;
             }
 
             /*vec3 target = hrec.p() + hrec.n() + random_point_unit_sphere(rstate);
             curr_attenuation *= 0.5f;
             curr_r = ray(hrec.p(), target - hrec.p());*/
         } else {
-            vec3 unit_direction = vec3::normalize(curr_r.direction());
+            /*vec3 unit_direction = vec3::normalize(curr_r.direction());
             float t = 0.5f * (unit_direction.y() + 1.0f);
             vec3 v = (1.0f - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
             return curr_attenuation * v;
+            */
+            return curr_attenuation;
         }
     }
     return vec3(); // exceeded recursion
@@ -102,7 +67,7 @@ __global__ void init_rand_state(curandState* randState, int width, int height) {
         return;
     }
 
-    int index = XY(i, j);
+    int index = utils::XY(i, j);
     
     // same seed for every thread, very slow
     //curand_init(SEED, index, 0, &randState[index]);
@@ -126,7 +91,7 @@ __global__ void render(vec3* frameBuffer, int width, int height,
         return;
     }
 
-    int index = XY(i, j);
+    int index = utils::XY(i, j);
 
     curandState rstate = randState[index];
     vec3 col;
@@ -137,15 +102,17 @@ __global__ void render(vec3* frameBuffer, int width, int height,
         float v = float(j + curand_uniform(&rstate)) / float(height);
         ray r = (*cam)->get_ray(u, v);
         col += color(r, scene, &rstate);
+        
     }
 
     
     col /= float(SAMPLES_PER_PIXEL);
+        //col.saturate();
     // do gamma correction with gamma 2 => raise the color to the power of 1/2 (sqrt)
-    frameBuffer[index] = col.gamma_correct();
+    frameBuffer[index] = col.saturate().gamma_correct();
 
     // only for debug
-    //frameBuffer[index] = col.gamma_correct().saturate();
+    //frameBuffer[index] = col.gamma_correct();
 
 }
 
@@ -170,7 +137,7 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene, c
             vec3(1, 0, -1),
             0.5,
             //new dielectric(1.5)
-            new metal(vec3(0.075, 0.461, 0.559), 0.1)
+            new metal(vec3(0.075, 0.461, 0.559), 0.5)
         );
         //sphere 4
         *(objects + 3) = new sphere(
@@ -191,19 +158,20 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene, c
         *(objects + 5) = new sphere(
             vec3(1, 0, -2),
             0.5,
-            new lambertian(vec3(0.2, 0.9, 0.3)*0.6)
-            //new metal(vec3(0.8, 0.8, 0.8), 0.5)
+            new emitter(vec3(2,1,1))
+            //new lambertian(vec3(0.2, 0.9, 0.3)*0.6)
+            
         );
         *(objects + 6) = new sphere(
             vec3(-1, 0, -2),
             0.5,
-            new dielectric(1.1, vec3(0.8,1.0,0.8))
-            //new metal(vec3(0.8, 0.8, 0.8), 0.5)
+            new emitter(vec3(1,2,1))
+            //new dielectric(1.1, vec3(0.8,1.0,0.8))
         );
 
         *scene = new hitable_list(objects, 7);
         *cam = new camera(
-            vec3(-2,2,1)*2.5, // lookfrom
+            vec3(-2,2,1)*3, // lookfrom
             vec3(0,0,-1), // lookat
             vec3(0,1,0),   // up
             20.f,           // fov
@@ -280,7 +248,7 @@ int main() {
     ppm_image << "P3\n" << WIDTH << " " << HEIGHT << "\n255\n";
     for (int j = HEIGHT - 1; j >= 0; j--) {
         for (int i = 0; i < WIDTH; i++) {
-            size_t index = XY(i, j);
+            size_t index = utils::XY(i, j);
             float r = frameBuffer_u[index].r();
             float g = frameBuffer_u[index].g();
             float b = frameBuffer_u[index].b();

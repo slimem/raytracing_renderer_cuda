@@ -11,7 +11,7 @@ The project will be split into the following steps:\
 6 - Profit
 
 ## Current state
-Balls! dielectric, lambertian and metal materials (1200x600 image size, 1000 samples per pixel)
+Balls! emitter, dielectric, lambertian and metal materials (1200x600 image size, 500 samples per pixel)
 ![render](renders/full_scene.jpg)
 
 ## How to run
