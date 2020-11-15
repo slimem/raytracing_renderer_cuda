@@ -6,7 +6,11 @@ class camera {
 public:
     __device__ camera(vec3 lookfrom, vec3 lookat, vec3 up,
         float vfov, float aspect,
-        float aperture, float focus_dist) {
+        float aperture, float focus_dist,
+        float time0 = 0.f, float time1 = 0.f) {
+
+        _t0 = time0;
+        _t1 = time1;
 
         _lens_radius = __fdiv_rz(aperture, 2);
         // vfov is top to bottom in degrees
@@ -29,7 +33,8 @@ public:
     __device__ ray get_ray(float s, float t, curandState* rstate) {
         vec3 random = _lens_radius * utils::random_point_unit_disk(rstate);
         vec3 offset = _u * random.x() + _v * random.y(); // z is null
-        return ray(_origin + offset, _lowerLeft + s * _horizontal + t * _vertical - _origin - offset);
+        float time = _t0 + curand_uniform(rstate) * (_t1 - _t0);
+        return ray(_origin + offset, _lowerLeft + s * _horizontal + t * _vertical - _origin - offset, time);
     }
 
 private:
@@ -39,4 +44,5 @@ private:
     vec3 _vertical;
     vec3 _u, _v, _w;
     float _lens_radius;
+    float _t0, _t1;
 };

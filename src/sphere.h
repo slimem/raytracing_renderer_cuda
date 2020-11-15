@@ -9,11 +9,45 @@ public:
     __device__ sphere(vec3 center, float radius, const material* mat)
         : _c(center), _r(radius), _m(mat) {};
     __device__ virtual bool hit(const ray& r, float tmin, float tmax, hit_record& hrec) const override;
-    __device__ ~sphere() noexcept;
+    __device__ virtual ~sphere() noexcept override;
+
+    __device__ virtual object_type get_object_type() const override {
+        return object_type::SPHERE;
+    }
 
 private:
     vec3 _c;
     float _r = 0.f;
+    const material* _m = nullptr;
+};
+
+class moving_sphere : public hitable_object {
+public:
+    __device__ moving_sphere() {};
+    __device__ moving_sphere(vec3 center0, vec3 center1,
+        float time0, float time1,
+        float radius,
+        const material* mat)
+        : _c0(center0), _c1(center1),
+          _t0(time0), _t1(time1),
+          _r(radius),
+          _m(mat) {}
+    __device__ virtual bool hit(const ray& r, float tmin, float tmax, hit_record& hrec) const override;
+    __device__ ~moving_sphere() noexcept override;
+
+    __device__ virtual object_type get_object_type() const override {
+        return object_type::MOVING_SPHERE;
+    }
+
+    __device__ inline vec3 center(float time) const {
+        // interpolation between centers
+        return _c0 + ((time - _t0) / (_t1 - _t0)) * (_c1 - _c0);
+    }
+
+private:
+    vec3 _c0, _c1;
+    float _t0, _t1;
+    float _r;
     const material* _m = nullptr;
 };
 
@@ -65,8 +99,53 @@ sphere::hit(const ray& r, float tmin, float tmax, hit_record& hrec) const {
 
 __device__
 sphere::~sphere() noexcept {
+    printf("Deleting sphere object at %p\n", this);
     if (_m) {
-        printf("Deleting material object at %p\n", _m);
+        printf("--Deleting material object at %p\n", _m);
+        delete _m;
+    }
+}
+
+__device__ bool
+moving_sphere::hit(const ray& r, float tmin, float tmax, hit_record& hrec) const {
+    vec3 oc = r.origin() - center(r.t());
+    float a = vec3::dot(r.direction(), r.direction());
+    float b = vec3::dot(oc, r.direction());
+    float c = vec3::dot(oc, oc) - _r * _r;
+    float delta = b * b - a * c;
+
+    if (delta > 0) {
+        float t = (-b - sqrt(delta)) / a;
+        if (t < tmax && t > tmin) {
+            hrec.set_t(t);
+            hrec.set_p(r.point_at_parameter(t));
+            hrec.set_n((hrec.p() - center(r.t())) / _r);
+
+            hrec.set_h(hit_object_type::SPHERE);
+
+            hrec.set_m(_m);
+            return true;
+        }
+        // we use the same variable
+        t = (-b + sqrt(delta)) / a;
+        if (t < tmax && t > tmin) {
+            hrec.set_t(t);
+            hrec.set_p(r.point_at_parameter(t));
+            hrec.set_n((hrec.p() - center(r.t())) / _r);
+            hrec.set_h(hit_object_type::SPHERE);
+            hrec.set_m(_m);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+__device__
+moving_sphere::~moving_sphere() noexcept {
+    printf("Deleting moving_sphere object at %p\n", this);
+    if (_m) {
+        printf("--Deleting material object at %p\n", _m);
         delete _m;
     }
 }

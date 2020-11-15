@@ -9,7 +9,11 @@ public:
     __device__ hitable_list(hitable_object** hitabe_objects, uint32_t size)
         : _hitable_objects(hitabe_objects), _size(size) {};
     __device__ virtual bool hit(const ray& r, float tmin, float tmax, hit_record& hrec) const override;
-    __device__ ~hitable_list() noexcept;
+    __device__ ~hitable_list() noexcept override;
+
+    __device__ virtual object_type get_object_type() const override {
+        return object_type::HITABLE_LIST;
+    }
 
 private:
     // a list of dynamically allocated hitable objects
@@ -40,9 +44,20 @@ hitable_list::hit(const ray& r, float tmin, float tmax, hit_record& hrec) const 
 __device__
 hitable_list::~hitable_list() noexcept {
     for (uint32_t i = 0; i < _size; ++i) {
-        printf("Deleting object at %p\n", _hitable_objects + i);
-        delete ((sphere*)_hitable_objects[i]);
-        //printf("Material is %p\n", (hitable_list + i)->_m);
-        //delete* (_hitable_objects + i);
+        /*switch (_hitable_objects[i]->get_object_type()) {
+        case object_type::SPHERE:
+            delete ((sphere*)_hitable_objects[i]);
+            break;
+        case object_type::MOVING_SPHERE:
+            delete ((moving_sphere*)_hitable_objects[i]);
+            break;
+        default:
+        {
+            printf("Warning! deleting unknown object type\n");
+            delete (_hitable_objects[i]);
+            break;
+        }
+        }*/
+        delete* (_hitable_objects + i);
     }
 }

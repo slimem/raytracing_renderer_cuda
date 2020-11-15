@@ -28,13 +28,13 @@ __device__ vec3 color(const ray& r, hitable_list** scene, curandState* rstate) {
     ray curr_r = r;
     vec3 curr_attenuation(1.f, .8f, .7f);
     //vec3 curr_attenuation(0.067, 0.471, 0.576);
-    for (int i = 0; i < BOUNCES; ++i) {
+    for (int i = 0; i < RAY_BOUNCES; ++i) {
         hit_record hrec;
         // 0.001 -> ignore hits near zero
         if ((*scene)->hit(curr_r, 0.001f, FLT_MAX, hrec)) {
             ray scattered;
             vec3 attenuation;
-            vec3 emit = hrec.m()->emit() + vec3(0.1,0.1,0.1);
+            vec3 emit = hrec.m()->emit() + vec3(0.1,0.1,0.1); // bloomy effect
             if (hrec.m()->scatter(curr_r, scattered, hrec, attenuation, rstate)) {
                 curr_attenuation = emit + attenuation*curr_attenuation;
                 curr_r = scattered;
@@ -177,22 +177,36 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene, c
             //new dielectric(1.1, vec3(0.8,1.0,0.8))
         );
 
-        *scene = new hitable_list(objects, 7);
+        *(objects + 7) = new moving_sphere(
+            vec3(-1, 1, -1),
+            vec3(-2, 1, -1),
+            0.f,
+            1.f,
+            0.2,
+
+            new lambertian(vec3(0.6, 0.1, 0.1))
+            //new dielectric(1.5, vec3(1, 1, 1))
+            //new metal(vec3(0.8, 0.8, 0.8), 0.5)
+        );
+
+        *scene = new hitable_list(objects, 8);
 
         vec3 lookfrom = vec3(-2, 1, 2) * 2.5;
         //vec3 lookat = vec3(0, 0, -1);
         vec3 lookat = vec3(-1, 0, -1); // redball
         //vec3 lookat = vec3(0, 0, -1);
         float dist_to_focus = (lookfrom - lookat).length();
-        float aperture = 1.f;
+        float aperture = .25f;
         *cam = new camera(
             lookfrom, // lookfrom
             lookat, // lookat
             vec3(0,1,0),   // up
             20.f,           // fov
             float(WIDTH) / float(HEIGHT),
-            0.25,
-            dist_to_focus
+            aperture,
+            dist_to_focus,
+            0,
+            0.2
         );
     }
 }
@@ -226,7 +240,7 @@ int main() {
     checkCudaErrors(cudaMallocManaged((void**)&frameBuffer_u, frameBufferSize));
 
     // allocate device memory
-    checkCudaErrors(cudaMalloc((void**)&hitableObjects_d, 7 * sizeof(hitable_object*)));
+    checkCudaErrors(cudaMalloc((void**)&hitableObjects_d, 8 * sizeof(hitable_object*)));
     checkCudaErrors(cudaMalloc((void**)&scene_d, sizeof(hitable_list*)));
     checkCudaErrors(cudaMalloc((void**)&camera_d, sizeof(camera*)));
 

@@ -9,6 +9,14 @@ enum class hit_object_type {
     UNKNOWN
 };
 
+// since we cannot have dynamic cast
+enum class object_type {
+    SPHERE,
+    MOVING_SPHERE,
+    HITABLE_LIST,
+    UNKNOWN
+};
+
 // Every hitable_object will hold a hit_record that contains
 // the hit point _p, the normal vector _n and a t parameter
 // value
@@ -52,5 +60,8 @@ private:
 class hitable_object {
 public:
     __device__ virtual bool hit(const ray& r, float tmin, float tmax, hit_record& hrec) const = 0;
-    //__device__ virtual ~hitable_object() = 0;
+    __device__ virtual object_type get_object_type() const {
+        return object_type::UNKNOWN;
+    }
+    __device__ virtual ~hitable_object() noexcept {}
 };

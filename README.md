@@ -11,8 +11,8 @@ The project will be split into the following steps:\
 6 - Profit
 
 ## Current state
-Balls! emitter, dielectric, lambertian and metal materials with defocus blur (1200x600 image size, 500 samples per pixel, render time 7300.2ms)
-![render](renders/defocus_blur.jpg)
+Balls! emitter, dielectric, lambertian and metal materials with defocus and motion blur (1200x600 image size, 500 samples per pixel, render time 7300.2ms)
+![render](renders/motion_blur.jpg)
 
 ## How to run
 ```sh

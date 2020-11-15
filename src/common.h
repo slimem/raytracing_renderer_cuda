@@ -16,7 +16,7 @@
 //#define WIDTH 32
 //#define HEIGHT 16
 
-#define BOUNCES 50
+#define RAY_BOUNCES 50
 #define SEED 1000
 
 // we will divide the work on the GPU into blocks of 8x8 threads beacause
