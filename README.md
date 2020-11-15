@@ -12,7 +12,7 @@ The project will be split into the following steps:\
 
 ## Current state
 Balls! emitter, dielectric, lambertian and metal materials (1200x600 image size, 500 samples per pixel)
-![render](renders/full_scene.jpg)
+![render](renders/light.jpg)
 
 ## How to run
 ```sh
