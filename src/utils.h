@@ -70,7 +70,6 @@ utils::refract(const vec3& v, const vec3& n,
 __device__ constexpr float
 utils::shlick(float cosine, float ref_id) {
 #ifdef __CUDA_ARCH__
-
     float r0 = 
         __fdiv_rz(
         (1.f - ref_id),

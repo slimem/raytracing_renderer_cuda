@@ -11,17 +11,9 @@ The project will be split into the following steps:\
 6 - Profit
 
 ## Progress
-Three spheres with dielectric (glass), metal and lambertian materials. (1200x600 image size, 100 samples per pixel)
-![render](renders/dielectric.jpg)
-
-Three spheres with metal and lambertian materials. (1200x600 image size, 100 samples per pixel)
-![render](renders/lambertian_metal.jpg)
-
-Generate a sphere with diffuse material (1200x600 image size, 100 samples per pixel)
-![render](renders/diffuse.jpg)
-
-Generate a sphere with normals (1200x600 image size, 100 samples per pixel)
-![render](renders/normals.jpg)
+## Current state
+Balls! dielectric, lambertian and metal materials (1200x600 image size, 1000 samples per pixel)
+![render](renders/full_scene.jpg)
 
 ## How to run
 ```sh

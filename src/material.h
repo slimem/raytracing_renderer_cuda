@@ -47,7 +47,7 @@ public:
 
 class dielectric : public material {
 public:
-    __device__ dielectric(float ri) : _ri(ri) {}
+    __device__ dielectric(float ri, const vec3& tint) : _ri(ri), _tint(tint) {}
     __device__ virtual bool scatter(const ray& rin, ray& rout,
         const hit_record& hrec,
         vec3& attenuation,
@@ -55,6 +55,7 @@ public:
 
 private:
     float _ri = 0.f;
+    vec3 _tint;
 };
 
 __device__ bool
@@ -102,7 +103,8 @@ dielectric::scatter(const ray& rin, ray& rout,
     float mu;
     float cosine;
     // glass surface absorbs nothing (no attenuation)
-    attenuation = vec3(1.f, 1.f, 1.f);
+    //attenuation = vec3(1.f, 1.f, 1.f);
+    attenuation = _tint;
     // if the dot product of the incident ray and the normal vector 
     // is positive, it means that we are inside the material (not outside)
     // thus we need to invert the normal. otherwise, we invert the refraction index

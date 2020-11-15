@@ -25,8 +25,8 @@ inline void check_cuda(cudaError_t errcode, char const* const func, const char* 
 //#define WIDTH 32
 //#define HEIGHT 16
 
-#define SAMPLES_PER_PIXEL 100
-
+#define SAMPLES_PER_PIXEL 1000
+#define BOUNCES 50
 #define SEED 1000
 
 // we will divide the work on the GPU into blocks of 8x8 threads beacause
@@ -64,8 +64,7 @@ __device__ vec3 color(const ray& r, hitable_list** scene, curandState* rstate) {
     // attenuation at each bounce
     ray curr_r = r;
     vec3 curr_attenuation(1.f, 1.f, 1.f);
-    int bounces = 50;
-    for (int i = 0; i < bounces; ++i) {
+    for (int i = 0; i < BOUNCES; ++i) {
         hit_record hrec;
         // 0.001 -> ignore hits near zero
         if ((*scene)->hit(curr_r, 0.001f, FLT_MAX, hrec)) {
@@ -157,14 +156,14 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene, c
         *(objects) = new sphere(
             vec3(0, 0, -1),
             0.5,
-            new lambertian(vec3(0.6, 0.1, 0.1))
+            new dielectric(1.5, vec3(1,1,1))
 
         );
         // sphere 2
         *(objects + 1) = new sphere(
             vec3(0, -100.5, -1),
             100,
-            new lambertian(vec3(0.1, 0.8, 0.2))
+            new lambertian(vec3(0.1, 0.2, 0.5))
         );
         //sphere 3
         *(objects + 2) = new sphere(
@@ -177,12 +176,39 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene, c
         *(objects + 3) = new sphere(
             vec3(-1, 0, -1),
             0.5,
-            new dielectric(1.5)
+
+            new lambertian(vec3(0.6, 0.1, 0.1))
             //new metal(vec3(0.8, 0.8, 0.8), 0.5)
         );
 
-        *scene = new hitable_list(objects, 4);
-        *cam = new camera();
+        //sphere 5
+        *(objects + 4) = new sphere(
+            vec3(0, 0, -2),
+            0.5,
+            new metal(vec3(0.8, 0.8, 0.8), 0.5)
+            //new metal(vec3(0.8, 0.8, 0.8), 0.5)
+        );
+        *(objects + 5) = new sphere(
+            vec3(1, 0, -2),
+            0.5,
+            new lambertian(vec3(0.2, 0.9, 0.3)*0.6)
+            //new metal(vec3(0.8, 0.8, 0.8), 0.5)
+        );
+        *(objects + 6) = new sphere(
+            vec3(-1, 0, -2),
+            0.5,
+            new dielectric(1.1, vec3(0.8,1.0,0.8))
+            //new metal(vec3(0.8, 0.8, 0.8), 0.5)
+        );
+
+        *scene = new hitable_list(objects, 7);
+        *cam = new camera(
+            vec3(-2,2,1)*2.5, // lookfrom
+            vec3(0,0,-1), // lookat
+            vec3(0,1,0),   // up
+            20.f,           // fov
+            float(WIDTH) / float(HEIGHT)
+        );
     }
 }
 
@@ -215,7 +241,7 @@ int main() {
     checkCudaErrors(cudaMallocManaged((void**)&frameBuffer_u, frameBufferSize));
 
     // allocate device memory
-    checkCudaErrors(cudaMalloc((void**)&hitableObjects_d, 4 * sizeof(hitable_object*)));
+    checkCudaErrors(cudaMalloc((void**)&hitableObjects_d, 7 * sizeof(hitable_object*)));
     checkCudaErrors(cudaMalloc((void**)&scene_d, sizeof(hitable_list*)));
     checkCudaErrors(cudaMalloc((void**)&camera_d, sizeof(camera*)));
 
