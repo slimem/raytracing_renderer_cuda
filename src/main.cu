@@ -6,6 +6,8 @@
 #include "camera.h"
 //#include "material.h"
 
+#define SAMPLES_PER_PIXEL 1000
+
 // remember, the # converts the definition to a char*
 #define checkCudaErrors(val) check_cuda( (val), #val, __FILE__, __LINE__)
 //#define constructo
@@ -100,7 +102,7 @@ __global__ void render(vec3* frameBuffer, int width, int height,
         // remember: random value is [0, 1[ 
         float u = float(i + curand_uniform(&rstate)) / float(width);
         float v = float(j + curand_uniform(&rstate)) / float(height);
-        ray r = (*cam)->get_ray(u, v);
+        ray r = (*cam)->get_ray(u, v, &rstate);
         col += color(r, scene, &rstate);
         
     }
@@ -123,15 +125,17 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene, c
         *(objects) = new sphere(
             vec3(0, 0, -1),
             0.5,
-            new dielectric(1.5, vec3(1,1,1))
-
+            new dielectric(1.5, vec3(1, 1, 1))
+            //new dielectric(1.5, vec3(1,1,1))
         );
+
         // sphere 2
         *(objects + 1) = new sphere(
             vec3(0, -100.5, -1),
             100,
             new lambertian(vec3(0.1, 0.2, 0.5))
         );
+
         //sphere 3
         *(objects + 2) = new sphere(
             vec3(1, 0, -1),
@@ -139,12 +143,14 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene, c
             //new dielectric(1.5)
             new metal(vec3(0.075, 0.461, 0.559), 0.5)
         );
+
         //sphere 4
         *(objects + 3) = new sphere(
             vec3(-1, 0, -1),
             0.5,
 
             new lambertian(vec3(0.6, 0.1, 0.1))
+            //new dielectric(1.5, vec3(1, 1, 1))
             //new metal(vec3(0.8, 0.8, 0.8), 0.5)
         );
 
@@ -155,13 +161,15 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene, c
             new metal(vec3(0.8, 0.8, 0.8), 0.5)
             //new metal(vec3(0.8, 0.8, 0.8), 0.5)
         );
+
         *(objects + 5) = new sphere(
             vec3(1, 0, -2),
             0.5,
-            new emitter(vec3(2,1,1))
+            new emitter(vec3(1,0.5,0.5))
             //new lambertian(vec3(0.2, 0.9, 0.3)*0.6)
             
         );
+
         *(objects + 6) = new sphere(
             vec3(-1, 0, -2),
             0.5,
@@ -170,12 +178,21 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene, c
         );
 
         *scene = new hitable_list(objects, 7);
+
+        vec3 lookfrom = vec3(-2, 1, 2) * 2.5;
+        //vec3 lookat = vec3(0, 0, -1);
+        vec3 lookat = vec3(-1, 0, -1); // redball
+        //vec3 lookat = vec3(0, 0, -1);
+        float dist_to_focus = (lookfrom - lookat).length();
+        float aperture = 1.f;
         *cam = new camera(
-            vec3(-2,2,1)*3, // lookfrom
-            vec3(0,0,-1), // lookat
+            lookfrom, // lookfrom
+            lookat, // lookat
             vec3(0,1,0),   // up
             20.f,           // fov
-            float(WIDTH) / float(HEIGHT)
+            float(WIDTH) / float(HEIGHT),
+            0.25,
+            dist_to_focus
         );
     }
 }

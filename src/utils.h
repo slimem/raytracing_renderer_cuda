@@ -16,6 +16,7 @@ public:
     }
 
     __device__ static vec3 random_point_unit_sphere(curandState* rstate);
+    __device__ static vec3 random_point_unit_disk(curandState* rstate);
 
     __device__ static inline vec3 reflect(const vec3& v, const vec3& n);
 
@@ -44,6 +45,20 @@ utils::random_point_unit_sphere(curandState* rstate) {
         ) - vec3(1.f, 1.f, 1.f);
 
     } while (point.sq_length() >= 1.f);
+    return point;
+}
+
+__device__ vec3
+utils::random_point_unit_disk(curandState* rstate) {
+    vec3 point;
+    do {
+        point = 2.f * vec3(
+            curand_uniform(rstate),
+            curand_uniform(rstate),
+            0
+        ) - vec3(1.f, 1.f, 0.f);
+
+    } while (vec3::dot(point, point) >= 1.f);
     return point;
 }
 

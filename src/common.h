@@ -16,7 +16,6 @@
 //#define WIDTH 32
 //#define HEIGHT 16
 
-#define SAMPLES_PER_PIXEL 500
 #define BOUNCES 50
 #define SEED 1000
 

@@ -44,6 +44,7 @@ public:
         curandState* rstate) const override;
 
 private:
+    // albedo is latin for whiteness
     vec3 _albedo;
 };
 
