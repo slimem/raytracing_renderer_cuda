@@ -10,7 +10,6 @@ The project will be split into the following steps:\
 5 - ?? \
 6 - Profit
 
-## Progress
 ## Current state
 Balls! dielectric, lambertian and metal materials (1200x600 image size, 1000 samples per pixel)
 ![render](renders/full_scene.jpg)
