@@ -1,7 +1,7 @@
 # raytracing_renderer_cuda
 A C++ rendering framework using raytracing and based on cuda inspired by [this book serie by Peter Shirley](https://github.com/RayTracing/raytracing.github.io).
 
-The project will be split into the following steps:\
+The project will be to turn the renderer into a backend server:\
 1 - Writing the base cuda code for the necessary algebra (vector3d, basic shapes such as spheres and cubes)\
 2 - Render a simple scene with no materials. The rendering result will be a jpeg or ppm image\
 3 - Add more shapes and materials, (use basic materials, maybe support .mdl format in the future?)\
