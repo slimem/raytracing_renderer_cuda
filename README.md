@@ -2,13 +2,14 @@
 A C++ rendering framework using raytracing and based on cuda inspired by [this book serie by Peter Shirley](https://github.com/RayTracing/raytracing.github.io).
 
 The project will be to turn the renderer into a backend server:\
-1 - Writing the base cuda code for the necessary algebra (vector3d, basic shapes such as spheres and cubes)\
+1 - Writing the base cuda code for the necessary algebra (vector3d, basic shapes such as spheres, cubes and triangles)\
 2 - Render a simple scene with no materials. The rendering result will be a jpeg or ppm image\
 3 - Add more shapes and materials, (use basic materials, maybe support .mdl format in the future?)\
-4 - Maybe support loading mdl (vertex and materials) (the objective is to support all mdl materials)\
-5 - A aws cloud based solution where the client draws a scene in a web browser (using webGL) and sends a json file that descripes the scene (rest api) to a server (aws ec2 that supports cuda)... maybe the server will be based on **asio**\
-5 - ?? \
-6 - Profit
+4 - Support loading .obj file types\
+5 - Use a json file that describes the scene as input.
+6 - A aws cloud based solution where the client draws a scene in a web browser (using THREE or webGL) and sends the json file to the server (aws ec2 that supports cuda)... maybe the server will be based on **asio**, and maybe use a REST API otherwise I will develop an API on my own\
+7 - ?? \
+8 - Profit
 
 ## Current state
 Balls! emitter, dielectric, lambertian and metal materials with defocus and motion blur (1200x600 image size, 500 samples per pixel, render time 7300.2ms)
