@@ -16,6 +16,13 @@ public:
         _v[1] = 0.f;
         _v[2] = 0.f;
     }
+
+    __host__ __device__ vec3(float v) {
+        _v[0] = v;
+        _v[1] = v;
+        _v[2] = v;
+    }
+
     __host__ __device__ vec3(float v1, float v2, float v3) {
         _v[0] = v1;
         _v[1] = v2;

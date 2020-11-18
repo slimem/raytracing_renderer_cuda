@@ -9,6 +9,7 @@ public:
     __device__ sphere(vec3 center, float radius, const material* mat)
         : _c(center), _r(radius), _m(mat) {};
     __device__ virtual bool hit(const ray& r, float tmin, float tmax, hit_record& hrec) const override;
+    __device__ virtual bool bounding_box(float t0, float t1, AABB& box) const override;
     __device__ virtual ~sphere() noexcept override;
 
     __device__ virtual object_type get_object_type() const override {
@@ -33,6 +34,7 @@ public:
           _r(radius),
           _m(mat) {}
     __device__ virtual bool hit(const ray& r, float tmin, float tmax, hit_record& hrec) const override;
+    __device__ virtual bool bounding_box(float t0, float t1, AABB& box) const override;
     __device__ ~moving_sphere() noexcept override;
 
     __device__ virtual object_type get_object_type() const override {
@@ -97,6 +99,12 @@ sphere::hit(const ray& r, float tmin, float tmax, hit_record& hrec) const {
     return false;
 }
 
+__device__ bool
+sphere::bounding_box(float t0, float t1, AABB& box) const {
+    box = AABB(_c - vec3(_r), _c + vec3(_r));
+    return true;
+}
+
 __device__
 sphere::~sphere() noexcept {
     printf("Deleting sphere object at %p\n", this);
@@ -141,6 +149,17 @@ moving_sphere::hit(const ray& r, float tmin, float tmax, hit_record& hrec) const
     return false;
 }
 
+__device__ bool
+moving_sphere::bounding_box(float t0, float t1, AABB& box) const {
+    // box at t0
+    AABB box0 = AABB(_c0 - vec3(_r), _c0 + vec3(_r));
+
+    // box at t1
+    AABB box1 = AABB(_c1 - vec3(_r), _c1 + vec3(_r));
+
+    box = AABB::surrounding_box(box0, box1);
+    return true;
+}
 __device__
 moving_sphere::~moving_sphere() noexcept {
     printf("Deleting moving_sphere object at %p\n", this);

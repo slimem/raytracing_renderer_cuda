@@ -4,6 +4,7 @@
 #include "sphere.h"
 #include "hitable_list.h"
 #include "camera.h"
+#include "bvh.h"
 //#include "material.h"
 
 #define SAMPLES_PER_PIXEL 1000
@@ -119,33 +120,39 @@ __global__ void render(vec3* frameBuffer, int width, int height,
 }
 
 // TODO: check for array boundary
-__global__ void populate_scene(hitable_object** objects, hitable_list** scene, camera** cam) {
+__global__ void populate_scene(hitable_object** objects, hitable_list** scene,
+    camera** cam, curandState* state) {
     if (threadIdx.x == 0 && blockIdx.x == 0) { // only call once
         // sphere 1
-        *(objects) = new sphere(
+        objects[0] = new sphere(
             vec3(0, 0, -1),
             0.5,
             new dielectric(1.5, vec3(1, 1, 1))
             //new dielectric(1.5, vec3(1,1,1))
         );
 
+        objects[0]->set_id(0);
+        
+
         // sphere 2
-        *(objects + 1) = new sphere(
+        objects[1] = new sphere(
             vec3(0, -100.5, -1),
             100,
             new lambertian(vec3(0.1, 0.2, 0.5))
         );
+        objects[1]->set_id(1);
 
         //sphere 3
-        *(objects + 2) = new sphere(
+        objects[2] = new sphere(
             vec3(1, 0, -1),
             0.5,
             //new dielectric(1.5)
             new metal(vec3(0.075, 0.461, 0.559), 0.5)
         );
+        objects[2]->set_id(2);
 
         //sphere 4
-        *(objects + 3) = new sphere(
+        objects[3] = new sphere(
             vec3(-1, 0, -1),
             0.5,
 
@@ -153,31 +160,36 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene, c
             //new dielectric(1.5, vec3(1, 1, 1))
             //new metal(vec3(0.8, 0.8, 0.8), 0.5)
         );
+        objects[3]->set_id(3);
 
         //sphere 5
-        *(objects + 4) = new sphere(
+        objects[4] = new sphere(
             vec3(0, 0, -2),
             0.5,
             new metal(vec3(0.8, 0.8, 0.8), 0.5)
             //new metal(vec3(0.8, 0.8, 0.8), 0.5)
         );
-
-        *(objects + 5) = new sphere(
+        objects[4]->set_id(4);
+        
+        objects[5] = new sphere(
             vec3(1, 0, -2),
             0.5,
             new emitter(vec3(1,0.5,0.5))
             //new lambertian(vec3(0.2, 0.9, 0.3)*0.6)
             
         );
+        objects[5]->set_id(5);
 
-        *(objects + 6) = new sphere(
+        
+        objects[6]= new sphere(
             vec3(-1, 0, -2),
             0.5,
             new emitter(vec3(1,2,1))
             //new dielectric(1.1, vec3(0.8,1.0,0.8))
         );
+        objects[6]->set_id(6);
 
-        *(objects + 7) = new moving_sphere(
+        objects[7] = new moving_sphere(
             vec3(-1, 1, -1),
             vec3(-2, 1, -1),
             0.f,
@@ -188,8 +200,19 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene, c
             //new dielectric(1.5, vec3(1, 1, 1))
             //new metal(vec3(0.8, 0.8, 0.8), 0.5)
         );
+        objects[7]->set_id(7);
+
+        //objects[8] = new bvh_node(objects, 8, 0, 1, state);
+        //objects[8]->set_id(8);
+
+
 
         *scene = new hitable_list(objects, 8);
+        scene[0]->set_id(9);
+
+        for (int i = 0; i < 8; ++i) {
+            printf("(%d) %s\n", objects[i]->get_id(), hitable_object::obj_type_str(objects[i]->get_object_type()));
+        }
 
         vec3 lookfrom = vec3(-2, 1, 2) * 2.5;
         //vec3 lookat = vec3(0, 0, -1);
@@ -245,7 +268,7 @@ int main() {
     checkCudaErrors(cudaMalloc((void**)&camera_d, sizeof(camera*)));
 
     // remember, construction is done in 1 block, 1 thread
-    populate_scene<<<1, 1>>> (hitableObjects_d, scene_d, camera_d);
+    populate_scene<<<1, 1>>> (hitableObjects_d, scene_d, camera_d, rand_state_d);
     checkCudaErrors(cudaGetLastError());
     checkCudaErrors(cudaDeviceSynchronize());
 

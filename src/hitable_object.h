@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ray.h"
+#include "aabb.h"
 
 class material;
 
@@ -14,6 +15,7 @@ enum class object_type {
     SPHERE,
     MOVING_SPHERE,
     HITABLE_LIST,
+    BOUNDING_VOLUME_HIERARCHY,
     UNKNOWN
 };
 
@@ -60,8 +62,31 @@ private:
 class hitable_object {
 public:
     __device__ virtual bool hit(const ray& r, float tmin, float tmax, hit_record& hrec) const = 0;
-    __device__ virtual object_type get_object_type() const {
-        return object_type::UNKNOWN;
-    }
+    __device__ virtual bool bounding_box(float t0, float t1, AABB& box) const = 0;
+    __device__ virtual object_type get_object_type() const = 0;
     __device__ virtual ~hitable_object() noexcept {}
+    __device__ static const char* obj_type_str(object_type obj);
+
+    __device__ constexpr uint32_t get_id() const { return _id; };
+    __device__ constexpr void set_id(const uint32_t id) { _id = id; }
+
+private:
+    uint32_t _id = 0;
 };
+
+__device__ const char*
+hitable_object::obj_type_str(object_type obj) {
+    switch (obj) {
+    case object_type::SPHERE:
+        return "SPHERE";
+    case object_type::MOVING_SPHERE:
+        return "MOVING_SPHERE";
+    case object_type::HITABLE_LIST:
+        return "HITABLE_LIST";
+    case object_type::BOUNDING_VOLUME_HIERARCHY:
+        return "BOUNDING_VOLUME_HIERARCHY";
+    case object_type::UNKNOWN:
+        return "UNKNOWN";
+    }
+    return "";
+}
