@@ -12,6 +12,7 @@ The project will be to turn the renderer into a backend server:\
 8 - Profit
 
 ## Current state
+I implemented a recursive DFS BVH that slowed the rendering time from 7s econds to 25 seconds. I will try to turn it into an iterative DFS.
 Balls! emitter, dielectric, lambertian and metal materials with defocus and motion blur (1200x600 image size, 500 samples per pixel, render time 7300.2ms)
 ![render](renders/motion_blur.jpg)
 
