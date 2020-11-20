@@ -8,8 +8,9 @@ public:
     __device__ sphere() {};
     __device__ sphere(vec3 center, float radius, const material* mat)
         : _c(center), _r(radius), _m(mat) {};
-    __device__ virtual bool hit(const ray& r, float tmin, float tmax, hit_record& hrec) const override;
+    __device__ virtual bool hit(const ray& r, float tmin, float tmax, hit_record& hrec) override;
     __device__ virtual bool bounding_box(float t0, float t1, AABB& box) const override;
+    __device__ inline vec3 get_center() const { return _c; }
     __device__ virtual ~sphere() noexcept override;
 
     __device__ virtual object_type get_object_type() const override {
@@ -33,7 +34,7 @@ public:
           _t0(time0), _t1(time1),
           _r(radius),
           _m(mat) {}
-    __device__ virtual bool hit(const ray& r, float tmin, float tmax, hit_record& hrec) const override;
+    __device__ virtual bool hit(const ray& r, float tmin, float tmax, hit_record& hrec) override;
     __device__ virtual bool bounding_box(float t0, float t1, AABB& box) const override;
     __device__ ~moving_sphere() noexcept override;
 
@@ -54,7 +55,8 @@ private:
 };
 
 __device__ bool
-sphere::hit(const ray& r, float tmin, float tmax, hit_record& hrec) const {
+sphere::hit(const ray& r, float tmin, float tmax, hit_record& hrec) {
+    //printf(" The SPHERE is calling this hit:  ");
     vec3 oc = r.origin() - _c; // A - C
     // 1 - dot((p(​ t) - c)​ ,(p(​ t) - c​)) = R*R
     // 2 - dot((A​ + t*B ​- C)​ ,(A​ + t*B​ - C​)) = R*R (A is origin, B is direction)
@@ -82,6 +84,7 @@ sphere::hit(const ray& r, float tmin, float tmax, hit_record& hrec) const {
             hrec.set_h(hit_object_type::SPHERE);
 
             hrec.set_m(_m);
+            //printf(" DID HIT\n");
             return true;
         }
         // we use the same variable
@@ -92,10 +95,11 @@ sphere::hit(const ray& r, float tmin, float tmax, hit_record& hrec) const {
             hrec.set_n((hrec.p() - _c) / _r);
             hrec.set_h(hit_object_type::SPHERE);
             hrec.set_m(_m);
+            //printf(" DID HIT\n");
             return true;
         }
     }
-    
+    //printf(" DID NOT HIT\n");
     return false;
 }
 
@@ -115,7 +119,7 @@ sphere::~sphere() noexcept {
 }
 
 __device__ bool
-moving_sphere::hit(const ray& r, float tmin, float tmax, hit_record& hrec) const {
+moving_sphere::hit(const ray& r, float tmin, float tmax, hit_record& hrec) {
     vec3 oc = r.origin() - center(r.t());
     float a = vec3::dot(r.direction(), r.direction());
     float b = vec3::dot(oc, r.direction());

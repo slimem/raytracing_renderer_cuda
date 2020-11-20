@@ -13,8 +13,8 @@
 #define WIDTH 1200
 #define HEIGHT 600
 
-//#define WIDTH 32
-//#define HEIGHT 16
+//#define WIDTH 16
+//#define HEIGHT 8
 
 #define RAY_BOUNCES 50
 #define SEED 1000

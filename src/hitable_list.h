@@ -1,14 +1,15 @@
 #pragma once
 
 #include "hitable_object.h"
+#include "bvh.h"
 
 // Embeds a list of N hitable_objects
 class hitable_list : public hitable_object {
 public:
     __device__ hitable_list() {};
-    __device__ hitable_list(hitable_object** hitabe_objects, uint32_t size)
-        : _hitable_objects(hitabe_objects), _size(size) {};
-    __device__ virtual bool hit(const ray& r, float tmin, float tmax, hit_record& hrec) const override;
+    __device__ hitable_list(hitable_object** hitabe_objects, bvh_node* bvh, uint32_t size)
+        : _hitable_objects(hitabe_objects), _bvh(bvh), _size(size) {};
+    __device__ virtual bool hit(const ray& r, float tmin, float tmax, hit_record& hrec) override;
     __device__ virtual bool bounding_box(float t0, float t1, AABB& box) const override;
     __device__ ~hitable_list() noexcept override;
 
@@ -21,6 +22,7 @@ public:
 private:
     // a list of dynamically allocated hitable objects
     hitable_object** _hitable_objects;
+    bvh_node* _bvh;
 
     // check for overflow in the future, if we get big scenes
     // that hold more than 2^32 objects
@@ -40,7 +42,7 @@ hitable_list::get_object(uint32_t id) {
 
 // This method checks for hits on all objects between tmin and tmax,
 // and updates the hit record accordingly.
-__device__ bool
+/*__device__ bool
 hitable_list::hit(const ray& r, float tmin, float tmax, hit_record& hrec) const {
     hit_record tmp_rec;
     bool hit_anything = false;
@@ -53,6 +55,26 @@ hitable_list::hit(const ray& r, float tmin, float tmax, hit_record& hrec) const 
         }
     }
     return hit_anything;
+}*/
+
+__device__ bool
+hitable_list::hit(const ray& r, float tmin, float tmax, hit_record& hrec) {
+
+    /*hit_record tmp_rec;
+    bool hit_anything = false;
+    float closest = tmax;
+    for (uint32_t i = 0; i < _size; i++) {
+        if (_hitable_objects[i]->hit(r, tmin, closest, tmp_rec) && (tmp_rec.t() < closest)) {
+            hit_anything = true;
+            closest = tmp_rec.t();
+            hrec = tmp_rec;
+        }
+    }
+    return hit_anything;*/
+
+
+
+    return(_bvh->hit(r, tmin, tmax, hrec));
 }
 
 __device__ bool

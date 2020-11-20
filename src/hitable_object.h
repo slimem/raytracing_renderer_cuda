@@ -51,7 +51,7 @@ public:
     __device__ constexpr void set_h(const hit_object_type& h) { _h = h; }
 
 private:
-    float _t;
+    float _t = 0;
     vec3 _p;
     vec3 _n;
     const material* _m = nullptr; // the hit record is not allowed to change the material
@@ -61,9 +61,12 @@ private:
 // Abstract class for any object that can be hit with a ray r
 class hitable_object {
 public:
-    __device__ virtual bool hit(const ray& r, float tmin, float tmax, hit_record& hrec) const = 0;
-    __device__ virtual bool bounding_box(float t0, float t1, AABB& box) const = 0;
-    __device__ virtual object_type get_object_type() const = 0;
+    __device__ virtual bool hit(const ray& r, float tmin, float tmax, hit_record& hrec) { return false; };
+    __device__ virtual bool bounding_box(float t0, float t1, AABB& box) const { return false; };
+    __device__ virtual object_type get_object_type() const { return object_type::UNKNOWN; }
+    __device__ inline bool is_leaf() const {
+        return get_object_type() != object_type::BOUNDING_VOLUME_HIERARCHY;
+    }
     __device__ virtual ~hitable_object() noexcept {}
     __device__ static const char* obj_type_str(object_type obj);
 

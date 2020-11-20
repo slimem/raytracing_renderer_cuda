@@ -43,8 +43,13 @@ public:
     //compute specular reflection coefficient R using Schlick's model
     __device__ static constexpr float shlick(float cosine, float refid);
 
+    // A recursive qsort
     template<typename T, typename V>
-    __device__ static void seq_qsort(T& v, int low, int high, bool(*f)(V, V));
+    __device__ static void rec_qsort(T& v, int low, int high, bool(*f)(V, V));
+
+    // An iterative qsort
+    template<typename T, typename V>
+    __device__ static void it_qsort(T& v, int low, int high, bool(*f)(V, V));
 
     template<typename T, typename V>
     __device__ static size_t seq_partition(T& v, int low, int high, bool(*f)(V, V));
@@ -220,11 +225,45 @@ utils::seq_partition(T& v, int low, int high, bool(*f)(V,V)) {
 
 template<typename T, typename V>
 __device__ void
-utils::seq_qsort(T& v, int low, int high, bool(*f)(V,V)){
+utils::rec_qsort(T& v, int low, int high, bool(*f)(V,V)){
     if (low < high) {
         int pi = seq_partition<T, V>(v, low, high, f);
 
-        seq_qsort<T,V>(v, low, pi - 1, f);
-        seq_qsort<T,V>(v, pi + 1, high, f);
+        rec_qsort<T,V>(v, low, pi - 1, f);
+        rec_qsort<T,V>(v, pi + 1, high, f);
+    }
+}
+
+template<typename T, typename V>
+__device__ void
+utils::it_qsort(T& v, int low, int high, bool(*f)(V, V)) {
+
+    int top = -1;
+    int stack[high - low + 1];
+    // prepare initial values
+    stack[++top] = low;
+    stack[++top] = high;
+
+    // pop from the stack
+    while (top >= 0) {
+        //pop high and low
+        high = stack[top--];
+        low = stack[top--];
+
+        // set pivot at its correct position
+        int pi = seq_partition<T, V>(v, low, high, f);
+
+        // if there are elements on the left side of the pivot push left
+        // side to stack
+        if (pi - 1 > low) {
+            stack[++top] = low;
+            stack[++top] = pi - 1;
+        }
+        // if there are elements on the right side of the pivot push right
+        // side to stack
+        if (pi + 1 < high) {
+            stack[++top] = pi + 1;
+            stack[++top] = high;
+        }
     }
 }
