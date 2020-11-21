@@ -2,6 +2,7 @@
 
 #include "hitable_object.h"
 #include "utils.h"
+#include "texture.h"
 
 // abstract material class
 class material {
@@ -37,7 +38,7 @@ private:
 // create a diffuse material
 class lambertian : public material {
 public:
-    __device__ lambertian(const vec3& a) : _albedo(a) {}
+    __device__ lambertian(const text* tex) : _albedo(tex) {}
     __device__ virtual bool scatter(const ray& rin, ray& rout,
         const hit_record& hrec,
         vec3& attenuation,
@@ -45,7 +46,7 @@ public:
 
 private:
     // albedo is latin for whiteness
-    vec3 _albedo;
+    const text* _albedo = nullptr;
 };
 
 class metal : public material {
@@ -90,7 +91,7 @@ lambertian::scatter(const ray& rin, ray& rout,
     // select a random vector at the hit point
     vec3 target = hrec.p() + hrec.n() + utils::random_point_unit_sphere(rstate);
     rout = ray(hrec.p(), target - hrec.p(), rin.t());
-    attenuation = _albedo;
+    attenuation = _albedo->value(0, 0, hrec.p());
     return true;
 }
 

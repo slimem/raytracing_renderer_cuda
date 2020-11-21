@@ -12,9 +12,9 @@ The project will be to turn the renderer into a backend server:\
 8 - Profit
 
 ## Current state
-Now that the renderer has a BVH, we can work on creating more complicated scenes.\
-Balls! with emitter, dielectric, lambertian and metal materials with defocus and motion blur (1200x600 image size, 500 samples per pixel, render time 6000.2ms)
-![render](renders/motion_blur.jpg)
+Now that the renderer can generate textures that based on perlin noise (wood for example).\
+Balls! with emitter, dielectric, lambertian, wood texture and metal materials with defocus and motion blur (1200x600 image size, 500 samples per pixel, render time 6000.2ms)
+![render](renders/wood_texture.jpg)
 
 ## Requirements
 **NVIDIA CUDA toolkit** and **netpbm** are required to run the renderer.

@@ -5,9 +5,9 @@
 #include "hitable_list.h"
 #include "camera.h"
 #include "bvh.h"
-//#include "material.h"
+#include "texture.h"
 
-#define SAMPLES_PER_PIXEL 100
+#define SAMPLES_PER_PIXEL 500
 
 // remember, the # converts the definition to a char*
 #define checkCudaErrors(val) check_cuda( (val), #val, __FILE__, __LINE__)
@@ -135,12 +135,27 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
 
         objects[0]->set_id(0);
         
+        
 
         // sphere 2
+
+
+        /*text* checker = new checker_texture(
+            new constant_texture(vec3(0.1, 0.2, 0.5)),
+            new constant_texture(vec3(0.5, 0.2, 0.1)));*/
+        text* noise = new wood_texture(vec3(0.792, 0.643, 0.447),
+            //vec3(0.267, 0.188, 0.133),
+            vec3(0.412, 0.349, 0.306),
+            10.f);
+        /*text* checker = new checker_texture(
+            noise,
+            noise);*/
+
         objects[1] = new sphere(
             vec3(0, -100.5, 1),
             100,
-            new lambertian(vec3(0.1, 0.2, 0.5))
+            //new lambertian(noise)
+            new lambertian(new constant_texture(vec3(0.1, 0.2, 0.5)))
         );
         objects[1]->set_id(1);
         /*objects[1] = new sphere(
@@ -155,16 +170,23 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
             vec3(1, 0, -1),
             0.5,
             //new dielectric(1.5)
-            new metal(vec3(0.075, 0.461, 0.559), 0.5)
+            new lambertian(noise)
+            //new metal(vec3(0.075, 0.461, 0.559), 0.5)
         );
         objects[2]->set_id(2);
 
         //sphere 4
+
+        //perlin_noise::init(state);
+        //perlin_noise noise;
+        //text* per_text = new noise_texture(state);
+
         objects[3] = new sphere(
             vec3(-1, 0, -1),
             0.5,
 
-            new lambertian(vec3(0.6, 0.1, 0.1))
+            //new lambertian(per_text)
+            new lambertian(new constant_texture(vec3(0.6, 0.1, 0.1)))
             //new dielectric(1.5, vec3(1, 1, 1))
             //new metal(vec3(0.8, 0.8, 0.8), 0.5)
         );
@@ -204,7 +226,7 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
             1.f,
             0.2,
 
-            new lambertian(vec3(0.6, 0.1, 0.1))
+            new lambertian(new constant_texture(vec3(0.6, 0.1, 0.1)))
             //new dielectric(1.5, vec3(1, 1, 1))
             //new metal(vec3(0.8, 0.8, 0.8), 0.5)
         );
@@ -218,7 +240,7 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
         objects[8]->set_id(8);
 
         // check bvh hierarchy
-        bvh_node::display_tree(static_cast<bvh_node*>(objects[8]), 2);
+        //bvh_node::display_tree(static_cast<bvh_node*>(objects[8]), 2);
 
         *scene = new hitable_list(objects, static_cast<bvh_node*>(objects[8]), 8);
         scene[0]->set_id(9);
@@ -227,8 +249,8 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
         //    printf("(%d) %s\n", objects[i]->get_id(), hitable_object::obj_type_str(objects[i]->get_object_type()));
         //}
 
-        vec3 lookfrom = vec3(-2, 1, 2) * 2.5;
-        //vec3 lookfrom = vec3(-2, 1, 2) * 20;
+        vec3 lookfrom = vec3(-2, 1, 2) * 2;
+        //vec3 lookfrom = vec3(-2, 1, 2) * 5;
         //vec3 lookat = vec3(0, 0, -1);
         vec3 lookat = vec3(-1, 0, -1); // redball
         //vec3 lookat = vec3(0, 0, -1);

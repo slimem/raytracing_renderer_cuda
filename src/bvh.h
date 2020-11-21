@@ -85,13 +85,10 @@ bvh_node::bvh_node(
     int axis = curand(rstate) % 3;
     if (axis == 0) {
         thrust::sort(hlist, hlist+n-1, box_compare(0));
-        //utils::it_qsort<hitable_object**, hitable_object*>(hlist, 0, n - 1, box_x_compare);
     } else if (axis == 1) {
         thrust::sort(hlist, hlist + n - 1, box_compare(1));
-        //utils::it_qsort<hitable_object**, hitable_object*>(hlist, 0, n - 1, box_y_compare);
     } else {
         thrust::sort(hlist, hlist + n - 1, box_compare(2));
-        //utils::it_qsort<hitable_object**, hitable_object*>(hlist, 0, n - 1, box_z_compare);
     }
 
     // if one element, left and right are the same
