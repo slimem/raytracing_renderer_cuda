@@ -60,21 +60,22 @@ hitable_list::hit(const ray& r, float tmin, float tmax, hit_record& hrec) const 
 __device__ bool
 hitable_list::hit(const ray& r, float tmin, float tmax, hit_record& hrec) {
 
-    /*hit_record tmp_rec;
-    bool hit_anything = false;
-    float closest = tmax;
-    for (uint32_t i = 0; i < _size; i++) {
-        if (_hitable_objects[i]->hit(r, tmin, closest, tmp_rec) && (tmp_rec.t() < closest)) {
-            hit_anything = true;
-            closest = tmp_rec.t();
-            hrec = tmp_rec;
+    // if we have a bvh, use it
+    if (_bvh) {
+        return(_bvh->dfs(r, tmin, tmax, hrec));
+    } else {
+        hit_record tmp_rec;
+        bool hit_anything = false;
+        float closest = tmax;
+        for (uint32_t i = 0; i < _size; i++) {
+            if (_hitable_objects[i]->hit(r, tmin, closest, tmp_rec) && (tmp_rec.t() < closest)) {
+                hit_anything = true;
+                closest = tmp_rec.t();
+                hrec = tmp_rec;
+            }
         }
+        return hit_anything;
     }
-    return hit_anything;*/
-
-
-
-    return(_bvh->hit(r, tmin, tmax, hrec));
 }
 
 __device__ bool

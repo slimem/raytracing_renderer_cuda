@@ -24,7 +24,6 @@ public:
     __device__ constexpr hitable_object* right() const { return _right; }
 
     __device__ static void display_tree(bvh_node* root, int level);
-    __device__ const hitable_object* get_this();
     __device__ inline bool is_lowest_bvh() {
         // _left and _right should not be null
         return (_left->is_leaf() || _right->is_leaf());
@@ -73,52 +72,6 @@ struct box_compare {
     int _axis = 0;
 };
 
-__device__ bool box_x_compare(hitable_object* a, hitable_object* b) {
-    AABB left_box, right_box;
-    hitable_object* ah = a;
-    hitable_object* bh = b;
-    if (!ah->bounding_box(0.f, 0.f, left_box)
-        || !bh->bounding_box(0.f, 0.f, right_box)) {
-        printf("Error: No bounding box in bvh_node constructor\n");
-    }
-    if (left_box.min().x() - right_box.min().x() < 0.f) {
-        return false;
-    } else {
-        return true;
-    }
-}
-
-__device__ bool box_y_compare(hitable_object* a, hitable_object* b) {
-    AABB left_box, right_box;
-    hitable_object* ah = a;
-    hitable_object* bh = b;
-    if (!ah->bounding_box(0.f, 0.f, left_box) || !bh->bounding_box(0.f, 0.f, right_box)) {
-        printf("Error: No bounding box in bvh_node constructor\n");
-    }
-    if (left_box.min().y() - right_box.min().y() < 0.f) {
-        return false;
-    } else {
-        return true;
-    }
-}
-
-__device__ bool box_z_compare(hitable_object* a, hitable_object* b) {
-    AABB left_box, right_box;
-    hitable_object* ah = a;
-    hitable_object* bh = b;
-    if (!ah->bounding_box(0.f, 0.f, left_box) || !bh->bounding_box(0.f, 0.f, right_box)) {
-        printf("Error: No bounding box in bvh_node constructor\n");
-    }
-    if (left_box.min().z() - right_box.min().z() < 0.f) {
-        return false;
-    } else {
-        return true;
-    }
-}
-
-__device__ bool compare(int a, int b) {
-    return a < b;
-}
 __device__
 bvh_node::bvh_node(
     hitable_object** hlist,
@@ -131,13 +84,13 @@ bvh_node::bvh_node(
     // chose a random axis
     int axis = curand(rstate) % 3;
     if (axis == 0) {
-        thrust::sort(hlist, hlist+n-1, box_x_compare);
+        thrust::sort(hlist, hlist+n-1, box_compare(0));
         //utils::it_qsort<hitable_object**, hitable_object*>(hlist, 0, n - 1, box_x_compare);
     } else if (axis == 1) {
-        thrust::sort(hlist, hlist + n - 1, box_y_compare);
+        thrust::sort(hlist, hlist + n - 1, box_compare(1));
         //utils::it_qsort<hitable_object**, hitable_object*>(hlist, 0, n - 1, box_y_compare);
     } else {
-        thrust::sort(hlist, hlist + n - 1, box_z_compare);
+        thrust::sort(hlist, hlist + n - 1, box_compare(2));
         //utils::it_qsort<hitable_object**, hitable_object*>(hlist, 0, n - 1, box_z_compare);
     }
 
@@ -163,398 +116,46 @@ bvh_node::bvh_node(
 }
 
 __device__ bool
+bvh_node::hit(const ray& r, float tmin, float tmax, hit_record& hrec) {
+    //return true;
+    return _box.hit(r, tmin, tmax);
+}
+
+__device__ bool
 bvh_node::dfs(const ray& r, float tmin, float tmax, hit_record& hrec) {
-    
-    // allocate traversal stack from thread-local memory and push NULL
-    // to indicate that there are no nodes left
-
-    // a list of node pointers
-    //node_ptr stack[64];
-    // this double node pointer will point to the start of the stack
-    //node_ptr* stack_ptr = stack;
-    //*stack_ptr++ = NULL;
-
-    hitable_object* stack[32];
+    if (!_box.hit(r, tmin, tmax)) return false;
+    hitable_object* stack[STACK_SIZE];
     hitable_object** stack_ptr = stack;
     *stack_ptr = NULL; //stack bottom
     stack_ptr++;
-
-    // traverse starting from the root
-    hitable_object* node = this;
-    hit_record l_rec;
-    hit_record r_rec;
-
+    *stack_ptr = this;
+    stack_ptr++;
+    hit_record temp_rec;
     float closest = tmax;
+    bool hit_anything = false;
+   
+
+    while (*--stack_ptr != NULL) {
+        hitable_object* node = *stack_ptr;
 
 
-    //bool verdict = false;
-    bool hit_something = false;
-    do {
-
-        /*if (!node->is_leaf() || static_cast<bvh_node*>(node)->is_lowest_bvh()) {
-            // we reached our desired destination, check here
-            
-        }*/
-
-        /*printf("DFS: current node is (%d) %s LEAF?\n", node->get_id(),
-            hitable_object::obj_type_str(node->get_object_type()),
-            node->is_leaf());*/
-
-        /*if (static_cast<bvh_node*>(node)->is_lowest_bvh()) {
-            printf("Will SEGFAULT NOW BECAUSE I SAY IT WILL DO\n");
-        }*/
-
-        if (node->is_leaf()) break;
-
-        hitable_object* left = static_cast<bvh_node*>(node)->_left;
-        hitable_object* right = static_cast<bvh_node*>(node)->_right;
-
-        /*if (static_cast<bvh_node*>(node)->is_lowest_bvh()) {
-            //printf("Will SEGFAULT AGAIN NOW BECAUSE I SAY IT WILL DO\n");
-
-            printf("Current LEFT node is (%d) %s LEAF? %d\n", left->get_id(),
-                hitable_object::obj_type_str(left->get_object_type()),
-                left->is_leaf());
-            printf("Current RIGHT node is (%d) %s LEAF? %d\n", right->get_id(),
-                hitable_object::obj_type_str(right->get_object_type()),
-                right->is_leaf());
-        }*/
-
-        bool left_hit = left->hit(r, tmin, closest, l_rec);
-        if (left_hit && left->is_leaf()) {
-            if (l_rec.t() < closest) {
-                closest = l_rec.t();
-            }
-        }
-        bool right_hit = left->hit(r, tmin, closest, r_rec);
-        /*if (right_hit) {
-            if (r_rec.t() < closest) {
-                closest = r_rec.t();
-            }
-        }*/
-
-        if (static_cast<bvh_node*>(node)->is_lowest_bvh()) {
-           // printf("Will SEGFAULT AGAIN NOW BECAUSE I SAY IT WILL DO\n");
-        }
-
-        //bool hit_something = left_hit || right_hit;
-
-        // we hit an object, not a bvh
-        if (static_cast<bvh_node*>(node)->is_lowest_bvh()) {
-            // we are sure that children are leafs
-            if (left_hit && right_hit) {
-                // we chose the closest
-                if (l_rec.t() < r_rec.t()) {
-                    // chose left
-                    hrec = l_rec;
-                    hit_something = true;
-                } else {
-                    hrec = r_rec;
-                    hit_something = true;
-                }
-            } else if (left_hit) {
-                hrec = l_rec;
-                hit_something = true;
-            } else if (right_hit) {
-                hrec = r_rec;
-                hit_something = true;
-            }
-            // exit loop
-            if (hit_something) {
-                //printf("Hit a leaf object, exiting..\n");
-                return true;
-            }
-
-            // we are at the bottom_level + 1; nothing to hit
-            // so we pop from the stack
-            //printf("SADLY WE DIDNT HIT LEAF, POPPING\n");
-            node = *--stack_ptr;
-
-        } else {
-
-            //printf("We are still in a BVH node\n");
-
-            bool traverse_left = left_hit && !(left->is_leaf());
-            bool traverse_right = right_hit && !(right->is_leaf());
-
-            // we update our stack
-            if (!traverse_left && !traverse_right) {
-                //printf("POPPING:\n");
-                node = *--stack_ptr; //pop node
-                /*printf("POPPING NODE AND WE ARE POINTING TO (%d) %s LEAF?\n", node->get_id(),
-                    hitable_object::obj_type_str(node->get_object_type()),
-                    node->is_leaf());*/
-            } else {
-                node = (traverse_left) ? left : right;
-                
-                if (traverse_left && traverse_right) {
-                    // pushing to stack
-                    *stack_ptr++ = right;
-                    /*printf("PUSHING NODE TO STACK (%d) %s LEAF?\n", right->get_id(),
-                        hitable_object::obj_type_str(right->get_object_type()),
-                        right->is_leaf());
-                    printf("TRAVERSING WITH NODE (%d) %s LEAF?\n", node->get_id(),
-                        hitable_object::obj_type_str(node->get_object_type()),
-                        node->is_leaf());
-                    printf(" SEARCHING IN BOTH NODES\n");*/
-                } /*else {
-                    printf(" ONLY SEARCHING IN ONE NODE\n");
-                }*/
-            }
-        }
-        //printf("----------------------------------\n");
-        //printf("At this point everything is OK\n");
-        /*if (node != NULL) {
-            printf("CURRENT NODE IS NOT NULL, WILL CONTINUE\n");
-        }*/
-        
-        //printf("%s -> ", hitable_object::obj_type_str(node->get_object_type()));
-        //node = static_cast<bvh_node*>(node)->_left;
-    } while (node != NULL);
-    
-    return false;
-    //printf("Finished DFS...HIT NOTHING\n");
-    /*for (int i = 0; i < 64; ++i) {
-        printf("DFS: %p\n", *(stack_ptr + i));
-    }*/
-}
-
-/*__device__ bool
-bvh_node::hit(const ray& r, float tmin, float tmax, hit_record& hrec) const {*/
-    //printf(" The DFS is calling this hit:  ");
-    //if (_box.hit(r, tmin, tmax)) {
-        //printf(" DID HIT\n");
-        // do DFS on the tree
-
-        /*
-        hit_record left_hrec, right_hrec;
-        bool hit_left = _left->hit(r, tmin, tmax, left_hrec);
-        bool hit_right = _right->hit(r, tmin, tmax, right_hrec);
-
-        // check if right and left are child nodes
-
-        if (hit_left && hit_right) {
-            // chose the closest
-            if (left_hrec.t() < right_hrec.t()) {
-                // chose left
-                if (_left->get_object_type() != object_type::BOUNDING_VOLUME_HIERARCHY) {
-                    hrec = left_hrec;
-                    return true;
-                } else {
-                    return false;
-                }
-
-            } else {
-                if (_right->get_object_type() != object_type::BOUNDING_VOLUME_HIERARCHY) {
-                    hrec = right_hrec;
-                    return true;
-                } else {
-                    return false;
-                }
-            }
-            
-        } else if (hit_left) {
-            if (_left->get_object_type() != object_type::BOUNDING_VOLUME_HIERARCHY) {
-                hrec = left_hrec;
-                return true;
-            } else {
-                return false;
-            }
-        } else if (hit_right) {
-            if (_right->get_object_type() != object_type::BOUNDING_VOLUME_HIERARCHY) {
-                hrec = right_hrec;
-                return true;
+        if (!node->is_leaf()) {
+            if (node->hit(r, tmin, tmax, temp_rec)) {
+                *stack_ptr++ = static_cast<bvh_node*>(node)->_left;
+                *stack_ptr++ = static_cast<bvh_node*>(node)->_right;
             }
         } else {
-            return false;
-        }*/
-       // return true;
-   // }
-    //printf(" DID NOT HIT\n");
-   // return false;
-//}
-__device__ const hitable_object*
-bvh_node::get_this() {
-    return this;
-}
+            // leaf node; check if intersects
+            if (node->hit(r, tmin, closest, temp_rec) && (temp_rec.t() < closest)) {
 
-#if 0
-__device__ bool
-bvh_node::hit(const ray& r, float t_min, float t_max, hit_record& hrec) {
-    if (_box.hit(r, t_min, t_max)) {
-
-
-        hitable_object* stack[32];
-        hitable_object** stack_ptr = stack;
-        *stack_ptr = NULL; //stack bottom
-        stack_ptr++;
-
-        // traverse starting from the root
-        hitable_object* node = this;
-        hit_record l_rec;
-        hit_record r_rec;
-
-
-
-        //bool verdict = false;
-        bool hit_something = false;
-        do {
-
-            /*if (!node->is_leaf() || static_cast<bvh_node*>(node)->is_lowest_bvh()) {
-                // we reached our desired destination, check here
-
-            }*/
-
-            /*printf("DFS: current node is (%d) %s LEAF?\n", node->get_id(),
-                hitable_object::obj_type_str(node->get_object_type()),
-                node->is_leaf());*/
-
-                /*if (static_cast<bvh_node*>(node)->is_lowest_bvh()) {
-                    printf("Will SEGFAULT NOW BECAUSE I SAY IT WILL DO\n");
-                }*/
-
-            if (node->is_leaf()) break;
-
-            hitable_object* left = static_cast<bvh_node*>(node)->_left;
-            hitable_object* right = static_cast<bvh_node*>(node)->_right;
-
-
-            bool left_hit = left->hit(r, t_min, t_max, l_rec);
-            bool right_hit = left->hit(r, t_min, t_max, r_rec);
-            /*if (right_hit) {
-                if (r_rec.t() < closest) {
-                    closest = r_rec.t();
-                }
-            }*/
-
-            if (static_cast<bvh_node*>(node)->is_lowest_bvh()) {
-                // printf("Will SEGFAULT AGAIN NOW BECAUSE I SAY IT WILL DO\n");
+                hit_anything = true;
+                closest = temp_rec.t();
+                hrec = temp_rec;
             }
-
-            //bool hit_something = left_hit || right_hit;
-
-            // we hit an object, not a bvh
-            if (static_cast<bvh_node*>(node)->is_lowest_bvh()) {
-                // we are sure that children are leafs
-                if (left_hit && right_hit) {
-                    // we chose the closest
-                    if (l_rec.t() < r_rec.t()) {
-                        // chose left
-                        hrec = l_rec;
-                        hit_something = true;
-                    } else {
-                        hrec = r_rec;
-                        hit_something = true;
-                    }
-                } else if (left_hit) {
-                    hrec = l_rec;
-                    hit_something = true;
-                } else if (right_hit) {
-                    hrec = r_rec;
-                    hit_something = true;
-                }
-                // exit loop
-                if (hit_something) {
-                    //printf("Hit a leaf object, exiting..\n");
-                    return true;
-                }
-
-                node = *--stack_ptr;
-
-            } else {
-
-
-                bool traverse_left = left_hit && !(left->is_leaf());
-                bool traverse_right = right_hit && !(right->is_leaf());
-
-                // we update our stack
-                if (!traverse_left && !traverse_right) {
-
-                    node = *--stack_ptr; //pop node
-
-                } else {
-                    node = (traverse_left) ? left : right;
-
-                    if (traverse_left && traverse_right) {
-
-                        *stack_ptr++ = right;
-
-                    }
-                }
-            }
-
-        } while (node != NULL);
-
-        return false;
-
-    } else return false;
-}
-#endif
-
-__device__ bool
-bvh_node::hit(const ray& r, float t_min, float t_max, hit_record& rec)  {
-    if (_box.hit(r, t_min, t_max)) {
-        hit_record left_rec, right_rec;
-        bool hit_left = _left->hit(r, t_min, t_max, left_rec);
-        bool hit_right = _right->hit(r, t_min, t_max, right_rec);
-        if (hit_left && hit_right) {
-            if (left_rec.t() < right_rec.t())
-                rec = left_rec;
-            else
-                rec = right_rec;
-            return true;
-        } else if (hit_left) {
-            rec = left_rec;
-            return true;
-        } else if (hit_right) {
-            rec = right_rec;
-            return true;
-        } else
-            return false;
-    } else return false;
-}
-
-
-
-
-
-
-
-
-
-/*__device__ bool
-bvh_node::hit(const ray& r, float tmin, float tmax, hit_record& hrec) {
-    
-    if (_box.hit(r, tmin, tmax)) {
-        hit_record left_hrec, right_hrec;
-        bool hit_left = _left->hit(r, tmin, tmax, left_hrec);
-        bool hit_right = _right->hit(r, tmin, tmax, right_hrec);
-
-        // check if right and left are child nodes
-
-        if (hit_left && hit_right) {
-            // chose the closest
-            if (left_hrec.t() < right_hrec.t()) {
-                hrec = left_hrec;
-            } else {
-                hrec = right_hrec;
-            }
-            return true;
-        } else if (hit_left) {
-            hrec = left_hrec;
-            return true;
-        } else if (hit_right) {
-            hrec = right_hrec;
-            return true;
-        } else {
-            return false;
         }
     }
-
-    return true;
-}*/
-
-
+    return hit_anything;
+}
 
 __device__ bool
 bvh_node::bounding_box(float t0, float t1, AABB& box) const {

@@ -7,7 +7,7 @@
 #include "bvh.h"
 //#include "material.h"
 
-#define SAMPLES_PER_PIXEL 1000
+#define SAMPLES_PER_PIXEL 100
 
 // remember, the # converts the definition to a char*
 #define checkCudaErrors(val) check_cuda( (val), #val, __FILE__, __LINE__)
@@ -35,9 +35,7 @@ __device__ vec3 color(const ray& r, hitable_list** scene, curandState* rstate) {
         if ((*scene)->hit(curr_r, 0.001f, FLT_MAX, hrec)) {
             ray scattered;
             vec3 attenuation;
-            //if (!hrec.m()) {
-            //    hrec.set_m(new lambertian(vec3(0.1, 0.2, 0.5)));
-            //}
+
             vec3 emit = hrec.m()->emit() + vec3(0.1,0.1,0.1); // bloomy effect
             if (hrec.m()->scatter(curr_r, scattered, hrec, attenuation, rstate)) {
                 curr_attenuation = emit + attenuation*curr_attenuation;
@@ -45,7 +43,6 @@ __device__ vec3 color(const ray& r, hitable_list** scene, curandState* rstate) {
             } else {
                 return emit;
             }
-            //return vec3(0.5, 0.5, 0.5);
 
             /*vec3 target = hrec.p() + hrec.n() + random_point_unit_sphere(rstate);
             curr_attenuation *= 0.5f;
@@ -56,6 +53,7 @@ __device__ vec3 color(const ray& r, hitable_list** scene, curandState* rstate) {
             vec3 v = (1.0f - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
             return curr_attenuation * v;
             */
+            // return world color
             return curr_attenuation;
         }
     }
@@ -145,6 +143,12 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
             new lambertian(vec3(0.1, 0.2, 0.5))
         );
         objects[1]->set_id(1);
+        /*objects[1] = new sphere(
+            vec3(0, -20, 1),
+            10,
+            new lambertian(vec3(0.1, 0.2, 0.5))
+        );
+        objects[1]->set_id(1);*/
 
         //sphere 3
         objects[2] = new sphere(
@@ -193,7 +197,7 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
         );
         objects[6]->set_id(6);
 
-        /*objects[7] = new moving_sphere(
+        objects[7] = new moving_sphere(
             vec3(-1, 1, -1),
             vec3(-2, 1, -1),
             0.f,
@@ -203,11 +207,11 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
             new lambertian(vec3(0.6, 0.1, 0.1))
             //new dielectric(1.5, vec3(1, 1, 1))
             //new metal(vec3(0.8, 0.8, 0.8), 0.5)
-        );*/
-        objects[7] = new sphere(
+        );
+        /*objects[7] = new sphere(
             vec3(-1, 1, -1),
             0.5,
-            new lambertian(vec3(0.6, 0.1, 0.1)));
+            new lambertian(vec3(0.6, 0.1, 0.1)));*/
         objects[7]->set_id(7);
 
         objects[8] = new bvh_node(objects, 8, 0, 1, state, 0);
@@ -216,9 +220,6 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
         // check bvh hierarchy
         bvh_node::display_tree(static_cast<bvh_node*>(objects[8]), 2);
 
-
-
-
         *scene = new hitable_list(objects, static_cast<bvh_node*>(objects[8]), 8);
         scene[0]->set_id(9);
 
@@ -226,8 +227,8 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
         //    printf("(%d) %s\n", objects[i]->get_id(), hitable_object::obj_type_str(objects[i]->get_object_type()));
         //}
 
-        //vec3 lookfrom = vec3(-2, 1, 2) * 2.5;
         vec3 lookfrom = vec3(-2, 1, 2) * 2.5;
+        //vec3 lookfrom = vec3(-2, 1, 2) * 20;
         //vec3 lookat = vec3(0, 0, -1);
         vec3 lookat = vec3(-1, 0, -1); // redball
         //vec3 lookat = vec3(0, 0, -1);
@@ -245,8 +246,9 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
             0.2
         );
 
-        //ray r = (*cam)->get_ray(0.5, 0.5, state);
-        //static_cast<bvh_node*>(objects[8])->dfs(r);
+        //hit_record hrec;
+        //ray r = (*cam)->get_ray(0.54, 0.5, state);
+        //static_cast<bvh_node*>(objects[8])->dfs(r, 0.001f, FLT_MAX, hrec);
         //assert(0);
     }
 }
