@@ -7,11 +7,15 @@
 #include "bvh.h"
 #include "texture.h"
 
+//#define STB_IMAGE_IMPLEMENTATION
+//#include "libs/stb/stb_image.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "libs/stb/stb_image_write.h"
+
 #define SAMPLES_PER_PIXEL 500
 
 // remember, the # converts the definition to a char*
 #define checkCudaErrors(val) check_cuda( (val), #val, __FILE__, __LINE__)
-//#define constructo
 
 inline void check_cuda(cudaError_t errcode, char const* const func, const char* const file, int const line) {
     if (errcode) {
@@ -32,7 +36,7 @@ __device__ vec3 color(const ray& r, hitable_list** scene, curandState* rstate) {
     for (int i = 0; i < RAY_BOUNCES; ++i) {
         hit_record hrec;
         // 0.001 -> ignore hits near zero
-        if ((*scene)->hit(curr_r, 0.001f, FLT_MAX, hrec)) {
+        if ((*scene)->hit(curr_r, 0.00001f, FLT_MAX, hrec)) {
             ray scattered;
             vec3 attenuation;
 
@@ -129,7 +133,8 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
         objects[0] = new sphere(
             vec3(0, 0, -1),
             0.5,
-            new dielectric(1.5, vec3(1, 1, 1))
+            new lambertian(new constant_texture(vec3(0.6, 0.1, 0.1)))
+            //new dielectric(1.3, vec3(1, 1, 1))
             //new dielectric(1.5, vec3(1,1,1))
         );
 
@@ -143,7 +148,8 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
         /*text* checker = new checker_texture(
             new constant_texture(vec3(0.1, 0.2, 0.5)),
             new constant_texture(vec3(0.5, 0.2, 0.1)));*/
-        text* noise1 = new noise_texture(noise_type::TURBULANCE, .1f);
+        //text* noise1 = new noise_texture(noise_type::TURBULANCE, .1f);
+        text* noise1 = new noise_texture(noise_type::MARBLE, 1.f);
         /*text* noise = new wood_texture(vec3(0.792, 0.643, 0.447),
             //vec3(0.267, 0.188, 0.133),
             vec3(0.412, 0.349, 0.306),
@@ -156,8 +162,8 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
         objects[1] = new sphere(
             vec3(0, -1000.5, 1),
             1000,
-            //new lambertian(noise1)
-            new lambertian(new constant_texture(vec3(0.1, 0.2, 0.5)))
+            new lambertian(noise1)
+            //new lambertian(new constant_texture(vec3(0.1, 0.2, 0.5)))
         );
         objects[1]->set_id(1);
         /*objects[1] = new sphere(
@@ -172,8 +178,11 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
             vec3(1, 0, -1),
             0.5,
             //new dielectric(1.5)
-            new lambertian(noise1)
-            //new metal(vec3(0.075, 0.461, 0.559), 0.5)
+            //new lambertian(noise1)
+            new lambertian(new constant_texture(vec3(0.1, 0.2, 0.5)))
+            //new metal(vec3(1.f), 0.f)
+            //new metal(vec3(1.f), 0.f)
+            //new metal(vec3(0.075, 0.461, 0.559), 0.1f)
         );
         objects[2]->set_id(2);
 
@@ -188,7 +197,8 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
             0.5,
 
             //new lambertian(per_text)
-            new lambertian(new constant_texture(vec3(0.6, 0.1, 0.1)))
+            new metal(vec3(1.f), 0.f)
+//            new lambertian(new constant_texture(vec3(0.6, 0.1, 0.1)))
             //new dielectric(1.5, vec3(1, 1, 1))
             //new metal(vec3(0.8, 0.8, 0.8), 0.5)
         );
@@ -206,7 +216,10 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
         objects[5] = new sphere(
             vec3(1, 0, -2),
             0.5,
-            new emitter(vec3(1,0.5,0.5))
+            //new emitter(vec3(1,0.5,0.5))
+
+            new dielectric(1.5, vec3(1, 1, 1))
+            //new lambertian(new constant_texture(vec3(0.1, 0.2, 0.5)))
             //new lambertian(vec3(0.2, 0.9, 0.3)*0.6)
             
         );
@@ -216,7 +229,7 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
         objects[6]= new sphere(
             vec3(-1, 0, -1),
             0.5,
-            new emitter(vec3(0.5,1,0.5)*0.7)
+            new emitter(vec3(0.5,1,0.5))
             //new dielectric(1.1, vec3(0.8,1.0,0.8))
         );
         objects[6]->set_id(6);
@@ -252,12 +265,12 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
         //}
 
         //vec3 lookfrom = vec3(-2, 1, 2) * 2;
-        //vec3 lookfrom = vec3(13, 5, 3);
-        vec3 lookfrom = vec3(5, 2, 3);
+        vec3 lookfrom = vec3(-1, 2,5);
+        //THISvec3 lookfrom = vec3(5, 2, 3);
         //vec3 lookat = vec3(0, 0, -1);
         //vec3 lookat = vec3(-1, 0, -1); // redball
-        vec3 lookat = vec3(1, 0, -1); // marble ball
-        //vec3 lookat = vec3(0, 0, -1);
+        //vec3 lookat = vec3(1, 0, -1); // marble ball
+        vec3 lookat = vec3(0, 0, -1);
         float dist_to_focus = (lookfrom - lookat).length();
         float aperture = .25f;
         *cam = new camera(
@@ -343,6 +356,7 @@ int main() {
     std::cout <<  "took " << timer_seconds << "us.\n";
 
     // Output frame buffer as a ppm image
+#if 0
     std::ofstream ppm_image("render.ppm");
     ppm_image << "P3\n" << WIDTH << " " << HEIGHT << "\n255\n";
     for (int j = HEIGHT - 1; j >= 0; j--) {
@@ -358,6 +372,25 @@ int main() {
         }
     }
     ppm_image.close();
+#endif
+
+    uint8_t* imgBuff = (uint8_t*)std::malloc(WIDTH * HEIGHT * 3 * sizeof(uint8_t));
+    for (int j = HEIGHT - 1; j >= 0; --j) {
+        for (int i = 0; i < WIDTH; ++i) {
+            size_t index = utils::XY(i, j);
+            // stbi generates a Y flipped image
+            size_t rev_index = utils::XY(i, HEIGHT - j - 1);
+            float r = frameBuffer_u[index].r();
+            float g = frameBuffer_u[index].g();
+            float b = frameBuffer_u[index].b();
+            imgBuff[rev_index * 3 + 0] = int(255.999f * r) & 255;
+            imgBuff[rev_index * 3 + 1] = int(255.999f * g) & 255;
+            imgBuff[rev_index * 3 + 2] = int(255.999f * b) & 255;
+        }
+    }
+    //stbi_write_png("render.png", WIDTH, HEIGHT, 3, imgBuff, WIDTH * 3);
+    stbi_write_jpg("render.jpg", WIDTH, HEIGHT, 3, imgBuff, 100);
+    std::free(imgBuff);
 
     // clean everything
     checkCudaErrors(cudaDeviceSynchronize());

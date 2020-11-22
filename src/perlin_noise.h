@@ -10,9 +10,13 @@ class perlin_noise {
 public:
     __device__ perlin_noise();
     __device__ float noise(const vec3& p) const;
-    __device__ float turbulance(const vec3& p, int depth = 7) const;
+    __device__ float turbulance_noise(
+        const vec3& p, // x y z positions
+        float lacunacity = 2.f, // spaces between successive octaves
+        float gain = 0.5f, // weighting applied to each successive octave
+        int octaves = 6) const;
 private:
-    __device__ constexpr float fade(float t) const;
+    __device__ constexpr float ease(float t) const;
     __device__ constexpr float lerp(float t, float a, float b) const;
     __device__ constexpr float grad(uint16_t hash, float x, float y, float z) const;
 
@@ -55,10 +59,10 @@ perlin_noise::noise(const vec3& point) const {
     yf -= floorf(yf);
     zf -= floorf(zf);
 
-    // compute fade curves for xyz
-    float u = fade(xf);
-    float v = fade(yf);
-    float w = fade(zf);
+    // compute easing curves for xyz
+    float u = ease(xf);
+    float v = ease(yf);
+    float w = ease(zf);
 
     // hash coordinates of the 8 cube corners
     uint16_t A = p[xi] + yi;
@@ -102,20 +106,55 @@ perlin_noise::noise(const vec3& point) const {
 }
 
 __device__ float
-perlin_noise::turbulance(const vec3& p, int depth) const {
-    float accum = 0.f;
-    vec3 temp_p = p;
-    float weight = 1.f;
-    for (int i = 0; i < depth; ++i) {
-        accum += weight * noise(temp_p);
-        weight *= 0.5f;
-        temp_p *= 2;
+perlin_noise::turbulance_noise(
+    const vec3& p,
+    float lacunacity,
+    float gain,
+    int octaves
+) const {
+    // implementation 1
+    /*float frequency = 1.f;
+    float sum = 0.0f;
+    for (int i = 0; i < octaves; ++i) {
+        float r = noise(p * frequency);
+        sum += (float)fabsf(r);
+        frequency *= lacunacity;
     }
-    return fabsf(accum);
+    return sum;*/
+
+    // implementation 2
+    /*float frequency = 0.02f;
+    float frequencyMult = 1.8;
+    float amplitudeMult = 0.35;
+    unsigned numLayers = 5;
+    float maxNoiseVal = 0;
+    float amplitude = 1.f;
+    float pNoise = 1.f;
+    float sum = 0.f;
+    for (unsigned l = 0; l < numLayers; ++l) {
+        float r = (2 * noise(p * pNoise) - 1);
+        sum += r;
+        pNoise *= frequencyMult;
+        amplitude *= amplitudeMult;
+    }
+    return sum;*/
+
+    // implementation 3
+    float frequency = 1.f;
+    float sum = 0.0f;
+    float amplitude = 1.f;
+    for (int i = 0; i < octaves; ++i) {
+        float r = noise(p * frequency);
+        sum += (float)fabsf(r * 2 - 1) * amplitude;
+        //sum += (float)fabsf(r);
+        frequency *= lacunacity;
+        amplitude *= gain;
+    }
+    return sum;
 }
 
 __device__ constexpr float
-perlin_noise::fade(float t) const {
+perlin_noise::ease(float t) const {
     // improved noise fade by Ken Perlin that uses the equation
     // 6t^5 - 15t^4 + 10t^3
     // check the following paper https://mrl.cs.nyu.edu/~perlin/paper445.pdf

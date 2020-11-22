@@ -13,7 +13,18 @@ enum class noise_type : uint8_t {
 class text {
 public:
     __device__ virtual inline vec3 value(float u, float v, const vec3& p) const = 0;
+
+    __device__ static constexpr void get_sphere_uv(const vec3& p, float& u, float& v);
 };
+
+__device__ constexpr void
+text::get_sphere_uv(const vec3& p, float& u, float& v) {
+    float phi = atan2f(p.z(), p.x());
+    float theta = asinf(p.y());
+    //TODO: use intrinsics
+    u = 1 - (phi + M_PI) / (2 * M_PI);
+    v = (theta + M_PI_2) / M_PI;
+}
 
 class constant_texture : public text {
 public:
@@ -51,17 +62,28 @@ class noise_texture : public text {
 public:
     __device__ noise_texture(noise_type ntype = noise_type::PERLIN, float density = 4.f)
         : _density(density), _ntype(ntype) {
-        if (_density <= 0.f) { //avoid division by zero
+        if (_density <= 0.f) {
             _density = 4.f;
         }
     }
     __device__ virtual inline vec3 value(float u, float v, const vec3& p) const override {
         if (_ntype == noise_type::PERLIN) {
-            return vec3(1, 1, 1) * _noise.noise(p / _density);
+            return vec3(1, 1, 1) * _noise.noise(p * _density);
         } else if (_ntype == noise_type::TURBULANCE) {
-            return vec3(0.7, 0.7, 0.7) * 0.5 * (1 + __sinf(12 * _noise.turbulance(p / _density)));
+            //return vec3(0.7, 0.7, 0.7) * 0.5 * (1 + __sinf(12 * _noise.turbulance_noise(p / _density)));
+            //return vec3(1.f) * 0.5 * (1 + __sinf(_noise.turbulance_noise(p * _density)));
+            return vec3(1.f) * 0.5 * _noise.turbulance_noise(p * _density);
+            //return vec3(1.f) * 0.5 * (1 + __sinf(5 * _noise.turbulance_noise(p * _density)));
         } else if (_ntype == noise_type::MARBLE) {
-            return vec3(1, 1, 1) * 0.5f * (1 + __sinf((p.z() / _density +  10 * _noise.turbulance(p))));
+            //return vec3(1) * 0.5f * (1 + __sinf((p.z() * _density + 7 * _noise.turbulance_noise(p))));
+            float value = 0.5f * (1 + __sinf((p.z() * _density + 7 * _noise.turbulance_noise(p))));
+            //return vec3(0.349, 0.431, 0.498) 
+                //(vec3(1,1,1) * 0.5f * (1 + __sinf((p.z() * _density +  7 * _noise.turbulance_noise(p)))));
+
+            vec3 color1(0.925, 0.816, 0.78);
+            vec3 color2(0.349/2, 0.431/2, 0.498/2);
+            return color1 * value + color2 * (1 - value);
+            //return (vec3(0.349, 0.431, 0.498) * value) + (vec3(0) * (1.f - value));
         } else {
             return vec3(1, 1, 1);
         }
