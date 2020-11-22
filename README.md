@@ -13,7 +13,7 @@ The project will be to turn the renderer into a backend server:\
 
 ## Current state
 Now that the renderer can generate textures using perlin noise (wood, marble and turbulance).\
-Balls! with emitter, dielectric, lambertian, wood texture and metal materials with defocus and motion blur (1200x600 image size, 500 samples per pixel, render time 6000.2ms)
+Balls! with emitter, dielectric, lambertian, wood texture and metal materials with defocus and motion blur (1200x600 image size, 500 samples per pixel, render time 1190.2ms)
 ![render](renders/marble.jpg)
 
 ## Requirements
