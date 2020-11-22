@@ -10,7 +10,7 @@ NVPROF_FLAGS=--metrics achieved_occupancy,inst_executed,inst_fp_32,inst_fp_64,in
 NVCCFLAGS_DEBUG= -g -G
 NVCCFLAGS=
 
-all: clean main.o compile run convert
+all: clean main.o compile run
 debug: clean dbg
 
 compile: main.o
@@ -24,11 +24,8 @@ dbg:
 	$(NVCC) $(NVCCFLAGS_DEBUG) -o main main.o
 
 run: main
-	rm -f render.ppm
+	rm -f rednder.jpg
 	./main
-
-convert: render.ppm
-	ppmtojpeg render.ppm > render.jpg
 
 profile: main
 	nvprof ./main
@@ -37,5 +34,5 @@ profile_metrics: main
 	nvprof $(NVPROF_FLAGS) ./main
 
 clean:
-	rm -f main main.o render.ppm render.jpg
+	rm -f main main.o render.jpg
 

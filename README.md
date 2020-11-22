@@ -14,7 +14,7 @@ The project will be to turn the renderer into a backend server:\
 ## Current state
 Now that the renderer can generate textures using perlin noise (wood, marble and turbulance).\
 Balls! with emitter, dielectric, lambertian, wood texture and metal materials with defocus and motion blur (1200x600 image size, 500 samples per pixel, render time 1190.2ms)
-![render](renders/marble.jpg)
+![render](renders/marble2.jpg)
 
 ## Requirements
 **NVIDIA CUDA toolkit** and **netpbm** are required to run the renderer.
@@ -54,11 +54,7 @@ Sun Nov 15 23:48:19 2020
 |  No running processes found                                                 |
 +-----------------------------------------------------------------------------+
 ```
-### Netpbm
-For now, **netpbm** is required since the render generates a .ppm image that needs to be converted to jpg or bmp. In the future, the renderer will generate in jpg, png and bmp formats.
-```sh
-apt-get install netpbm
-```
+
 ## How to run
 ```sh
 git clone git clone https://github.com/slimem/raytracing_renderer_cuda.git
