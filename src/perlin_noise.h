@@ -10,6 +10,7 @@ class perlin_noise {
 public:
     __device__ perlin_noise();
     __device__ float noise(const vec3& p) const;
+    __device__ float turbulance(const vec3& p, int depth = 7) const;
 private:
     __device__ constexpr float fade(float t) const;
     __device__ constexpr float lerp(float t, float a, float b) const;
@@ -98,6 +99,19 @@ perlin_noise::noise(const vec3& point) const {
         )
     );
     return (res + 1.0f) / 2.0f;
+}
+
+__device__ float
+perlin_noise::turbulance(const vec3& p, int depth) const {
+    float accum = 0.f;
+    vec3 temp_p = p;
+    float weight = 1.f;
+    for (int i = 0; i < depth; ++i) {
+        accum += weight * noise(temp_p);
+        weight *= 0.5f;
+        temp_p *= 2;
+    }
+    return fabsf(accum);
 }
 
 __device__ constexpr float

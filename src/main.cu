@@ -143,18 +143,20 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
         /*text* checker = new checker_texture(
             new constant_texture(vec3(0.1, 0.2, 0.5)),
             new constant_texture(vec3(0.5, 0.2, 0.1)));*/
-        text* noise = new wood_texture(vec3(0.792, 0.643, 0.447),
+        text* noise1 = new noise_texture(noise_type::TURBULANCE, .1f);
+        /*text* noise = new wood_texture(vec3(0.792, 0.643, 0.447),
             //vec3(0.267, 0.188, 0.133),
             vec3(0.412, 0.349, 0.306),
-            10.f);
+            10.f);*/
         /*text* checker = new checker_texture(
             noise,
             noise);*/
 
+        //text* noise1 = new noise_texture(noise_type::MARBLE, .2f);
         objects[1] = new sphere(
-            vec3(0, -100.5, 1),
-            100,
-            //new lambertian(noise)
+            vec3(0, -1000.5, 1),
+            1000,
+            //new lambertian(noise1)
             new lambertian(new constant_texture(vec3(0.1, 0.2, 0.5)))
         );
         objects[1]->set_id(1);
@@ -170,7 +172,7 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
             vec3(1, 0, -1),
             0.5,
             //new dielectric(1.5)
-            new lambertian(noise)
+            new lambertian(noise1)
             //new metal(vec3(0.075, 0.461, 0.559), 0.5)
         );
         objects[2]->set_id(2);
@@ -182,7 +184,7 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
         //text* per_text = new noise_texture(state);
 
         objects[3] = new sphere(
-            vec3(-1, 0, -1),
+            vec3(-1, 0, -2),
             0.5,
 
             //new lambertian(per_text)
@@ -212,9 +214,9 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
 
         
         objects[6]= new sphere(
-            vec3(-1, 0, -2),
+            vec3(-1, 0, -1),
             0.5,
-            new emitter(vec3(1,2,1))
+            new emitter(vec3(0.5,1,0.5)*0.7)
             //new dielectric(1.1, vec3(0.8,1.0,0.8))
         );
         objects[6]->set_id(6);
@@ -249,10 +251,12 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
         //    printf("(%d) %s\n", objects[i]->get_id(), hitable_object::obj_type_str(objects[i]->get_object_type()));
         //}
 
-        vec3 lookfrom = vec3(-2, 1, 2) * 2;
-        //vec3 lookfrom = vec3(-2, 1, 2) * 5;
+        //vec3 lookfrom = vec3(-2, 1, 2) * 2;
+        //vec3 lookfrom = vec3(13, 5, 3);
+        vec3 lookfrom = vec3(5, 2, 3);
         //vec3 lookat = vec3(0, 0, -1);
-        vec3 lookat = vec3(-1, 0, -1); // redball
+        //vec3 lookat = vec3(-1, 0, -1); // redball
+        vec3 lookat = vec3(1, 0, -1); // marble ball
         //vec3 lookat = vec3(0, 0, -1);
         float dist_to_focus = (lookfrom - lookat).length();
         float aperture = .25f;

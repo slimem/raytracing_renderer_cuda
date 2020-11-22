@@ -3,6 +3,13 @@
 #include "vec3.h"
 #include "perlin_noise.h"
 
+enum class noise_type : uint8_t {
+    PERLIN,
+    TURBULANCE,
+    MARBLE,
+    UNKNOWN
+};
+
 class text {
 public:
     __device__ virtual inline vec3 value(float u, float v, const vec3& p) const = 0;
@@ -42,12 +49,27 @@ checker_texture::value(float u, float v, const vec3& p) const {
 
 class noise_texture : public text {
 public:
-    __device__ noise_texture() {}
+    __device__ noise_texture(noise_type ntype = noise_type::PERLIN, float density = 4.f)
+        : _density(density), _ntype(ntype) {
+        if (_density <= 0.f) { //avoid division by zero
+            _density = 4.f;
+        }
+    }
     __device__ virtual inline vec3 value(float u, float v, const vec3& p) const override {
-        return vec3(1, 1, 1) * _noise.noise(p);
+        if (_ntype == noise_type::PERLIN) {
+            return vec3(1, 1, 1) * _noise.noise(p / _density);
+        } else if (_ntype == noise_type::TURBULANCE) {
+            return vec3(0.7, 0.7, 0.7) * 0.5 * (1 + __sinf(12 * _noise.turbulance(p / _density)));
+        } else if (_ntype == noise_type::MARBLE) {
+            return vec3(1, 1, 1) * 0.5f * (1 + __sinf((p.z() / _density +  10 * _noise.turbulance(p))));
+        } else {
+            return vec3(1, 1, 1);
+        }
     }
 private:
     perlin_noise _noise;
+    float _density;
+    noise_type _ntype;
 };
 
 class wood_texture : public text {
@@ -59,7 +81,7 @@ public:
         float hardness = 50.f
     ) : _color1(color1), _color2(color2), _density(density), _hardness(hardness)
     {
-        if (_density <= 0.f) {
+        if (_density <= 0.f) { //avoid division by zero
             _density = 4.f;
         }
     }
