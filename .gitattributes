@@ -1,0 +1,2 @@
+src/libs/stb/* linguist-vendored
+*.h linguist-language=Cuda
