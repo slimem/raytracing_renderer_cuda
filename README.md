@@ -17,7 +17,7 @@ Balls! with emitter, dielectric, lambertian, wood texture and metal materials wi
 ![render](renders/marble2.jpg)
 
 ## Requirements
-**NVIDIA CUDA toolkit** and **netpbm** are required to run the renderer.
+**NVIDIA CUDA toolkit** and a CUDA-capable device are required to build and run the renderer.
 ### NVIDIA CUDA toolkit
 This highly depends on your host machine. Go to https://developer.nvidia.com/cuda-downloads and download the appropriate SDK version.\
 After installing, check if nvcc is available by running the following command:
