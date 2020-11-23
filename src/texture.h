@@ -120,3 +120,29 @@ private:
     vec3 _color2;
     perlin_noise _noise;
 };
+
+class image_texture : public text {
+public:
+    __device__ image_texture() {}
+    __device__ image_texture(uint8_t* buffer, int a, int b)
+        : _data(buffer), _nx(a), _ny(b) {}
+    __device__ virtual inline vec3 value(float u, float v, const vec3& p) const override;
+private:
+    uint8_t* _data;
+    int _nx = 0;
+    int _ny = 0;
+};
+
+__device__ inline vec3
+image_texture::value(float u, float v, const vec3& p) const {
+    int i = u * _nx;
+    int j = (1 - v) * _ny - 0.001;
+    if (i < 0) i = 0;
+    if (j < 0) j = 0;
+    if (i > _nx - 1) i = _nx - 1;
+    if (j > _ny - 1) j = _ny - 1;
+    float r = int(_data[3 * i + 3 * _nx * j]) / 255.0;
+    float g = int(_data[3 * i + 3 * _nx * j + 1]) / 255.0;
+    float b = int(_data[3 * i + 3 * _nx * j + 2]) / 255.0;
+    return vec3(r, g, b);
+}

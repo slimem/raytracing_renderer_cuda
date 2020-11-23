@@ -7,12 +7,12 @@
 #include "bvh.h"
 #include "texture.h"
 
-//#define STB_IMAGE_IMPLEMENTATION
-//#include "libs/stb/stb_image.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "libs/stb/stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "libs/stb/stb_image_write.h"
 
-#define SAMPLES_PER_PIXEL 500
+#define SAMPLES_PER_PIXEL 100
 
 // remember, the # converts the definition to a char*
 #define checkCudaErrors(val) check_cuda( (val), #val, __FILE__, __LINE__)
@@ -25,6 +25,31 @@ inline void check_cuda(cudaError_t errcode, char const* const func, const char* 
         exit(99);
     }
 }
+
+texture<float, 2, cudaReadModeElementType> tex;
+constexpr char imagePath[] = "textures/earth.jpg";
+
+__global__ void transformKernel(float* outputData,
+    int width,
+    int height,
+    float theta)
+{
+    // calculate normalized texture coordinates
+    unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    float u = (float)x - (float)width / 2;
+    float v = (float)y - (float)height / 2;
+    float tu = u * cosf(theta) - v * sinf(theta);
+    float tv = v * cosf(theta) + u * sinf(theta);
+
+    tu /= (float)width;
+    tv /= (float)height;
+
+    // read from texture and write to global memory
+    outputData[y * width + x] = tex2D(tex, tu + 0.5f, tv + 0.5f);
+}
+
 
 __device__ vec3 color(const ray& r, hitable_list** scene, curandState* rstate) {
 
@@ -173,6 +198,8 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
         );
         objects[1]->set_id(1);*/
 
+
+        //text* im_text = new image_texture(nullptr, 200, 300);
         //sphere 3
         objects[2] = new sphere(
             vec3(1, 0, -1),
@@ -300,7 +327,14 @@ __global__ void free_scene(hitable_object** objects, hitable_list** scene, camer
     delete* cam;
 }
 
-int main() {
+int main(int argc, char** argv) {
+
+    // loading image to host
+    int w, h, ch;
+    uint8_t* imgData = stbi_load(imagePath, &w, &h, &ch, 0);
+    std::cout << "Loaded image with " << w << "x" << h << " and " << ch << " channels\n";
+    stbi_write_png("export.png", w, h, ch, imgData, w * ch);
+    stbi_image_free(imgData);
 
     std::cout << "Rendering a " << WIDTH << "x" << HEIGHT << " image ";
     std::cout << "(" << SAMPLES_PER_PIXEL << " samples per pixel) ";
