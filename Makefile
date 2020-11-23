@@ -24,7 +24,7 @@ dbg:
 	$(NVCC) $(NVCCFLAGS_DEBUG) -o main main.o
 
 run: main
-	rm -f rednder.jpg
+	rm -f render.jpg
 	./main
 
 profile: main
