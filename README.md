@@ -12,9 +12,12 @@ The project will be to turn the renderer into a backend server:\
 8 - Profit
 
 ## Current state
-Now that the renderer can generate textures using perlin noise (wood, marble and turbulance).\
+Now the renderer can generate procedural textures using perlin noise (wood, marble and turbulance).\
+I am currently working on supporing image textures.
+### Last render
 Balls! with emitter, dielectric, lambertian, wood texture and metal materials with defocus and motion blur (1200x600 image size, 500 samples per pixel, render time 1190.2ms)
 ![render](renders/marble2.jpg)
+You can view previous renders under ./renders.
 
 ## Requirements
 **NVIDIA CUDA toolkit** and a CUDA-capable device are required to build and run the renderer.
