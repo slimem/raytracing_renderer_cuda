@@ -61,7 +61,7 @@ git clone git clone https://github.com/slimem/raytracing_renderer_cuda.git
 cd raytracing_renderer_cuda
 make all
 ```
-The raytracer generates two images, a ```render.ppm``` and ```render.jpg``` images.\
+The raytracer generates a ```render.jpg``` images.\
 To profile the renderer, run the following:
 ```sh
 make profile
