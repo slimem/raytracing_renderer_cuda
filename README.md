@@ -4,12 +4,13 @@ A C++ rendering framework using raytracing and based on cuda inspired by [this b
 The project will be to turn the renderer into a backend server:\
 1 - Writing the base cuda code for the necessary algebra (vector3d, basic shapes such as spheres, cubes and triangles)\
 2 - Render a simple scene with no materials. The rendering result will be a jpeg or ppm image\
-3 - Add more shapes and materials, (use basic materials, maybe support .mdl format in the future?)\
-4 - Support loading .obj file types\
-5 - Use a json file that describes the scene as input.
-6 - A aws cloud based solution where the client draws a scene in a web browser (using THREE or webGL) and sends the json file to the server (aws ec2 that supports cuda)... maybe the server will be based on **asio**, and maybe use a REST API otherwise I will develop an API on my own\
-7 - ?? \
-8 - Profit
+3 - Support texture projection.\
+4 - Add more shapes and materials, (use basic materials, maybe support .mdl format in the future?)\
+5 - Support loading .obj file types\
+6 - Use a json file that describes the scene as input.
+7 - A aws cloud based solution where the client draws a scene in a web browser (using THREE or webGL) and sends the json file to the server (aws ec2 that supports cuda)... maybe the server will be based on **asio**, and maybe use a REST API otherwise I will develop an API on my own\
+8 - ?? \
+9 - Profit
 
 ## Current state
 Now the renderer can generate procedural textures using perlin noise (wood, marble and turbulance).\
