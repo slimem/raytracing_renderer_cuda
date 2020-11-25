@@ -8,7 +8,7 @@ The project will be to turn the renderer into a backend server:\
 4 - Add more shapes and materials, (use basic materials, maybe support .mdl format in the future?)\
 5 - Support loading .obj file types\
 6 - Use a json file that describes the scene as input.
-7 - A aws cloud based solution where the client draws a scene in a web browser (using THREE or webGL) and sends the json file to the server (aws ec2 that supports cuda)... maybe the server will be based on **asio**, and maybe use a REST API otherwise I will develop an API on my own\
+7 - A aws cloud based solution where the client draws a scene in a web browser (using THREE or webGL) and sends the json file to the server (aws ec2 that supports cuda)... maybe the server will be based on **asio**, and maybe use a REST API otherwise I will develop an API on my own.\
 8 - ?? \
 9 - Profit
 
@@ -19,6 +19,11 @@ I am currently working on supporing image textures.
 Balls! with emitter, dielectric, lambertian, wood texture and metal materials with defocus and motion blur (1200x600 image size, 500 samples per pixel, render time 1190.2ms)
 ![render](renders/marble2.jpg)
 You can view previous renders under ./renders.
+### Future Improvements
+#### How the project is organized
+For now, the render is one **.cu** file and multiple header files with multiple classes each so it's easier to compile and debug. Once I start developing the server part with asio, I will split every .h file into a **.cu** and **.cuh**.
+#### A faster BVH
+Currently bvh is called by each thread, and does an initial iterative dfs if the ray hits its initial bounding box (using global memory). Since bounding boxes are read-only, can be computed before starting the main rendering kernel and memory access is localized (it's a dfs), It would be better to use read-only texture memory in the future.
 
 ## Requirements
 **NVIDIA CUDA toolkit** and a CUDA-capable device are required to build and run the renderer.
