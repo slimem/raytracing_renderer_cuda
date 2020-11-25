@@ -1,5 +1,5 @@
 # raytracing_renderer_cuda
-A C++ rendering framework using raytracing and based on cuda inspired by [this book serie by Peter Shirley](https://github.com/RayTracing/raytracing.github.io).
+A C++ rendering framework using raytracing and based on cuda.
 
 The project will be to turn the renderer into a backend server:\
 1 - Writing the base cuda code for the necessary algebra (vector3d, basic shapes such as spheres, cubes and triangles)\
@@ -81,5 +81,6 @@ profile_metrics
 ```
 
 #
+The first part of this project is inspired by [this book serie by Peter Shirley](https://github.com/RayTracing/raytracing.github.io).\
 Enjoy this little project as you see fit, and feel free to contact me!\
 Email: slimlimem@gmail.com Linkedin: https://www.linkedin.com/in/slim-limem/
