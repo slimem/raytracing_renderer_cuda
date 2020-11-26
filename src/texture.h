@@ -13,18 +13,7 @@ enum class noise_type : uint8_t {
 class text {
 public:
     __device__ virtual inline vec3 value(float u, float v, const vec3& p) const = 0;
-
-    __device__ static constexpr void get_sphere_uv(const vec3& p, float& u, float& v);
 };
-
-__device__ constexpr void
-text::get_sphere_uv(const vec3& p, float& u, float& v) {
-    float phi = atan2f(p.z(), p.x());
-    float theta = asinf(p.y());
-    //TODO: use intrinsics
-    u = 1 - (phi + M_PI) / (2 * M_PI);
-    v = (theta + M_PI_2) / M_PI;
-}
 
 class constant_texture : public text {
 public:
@@ -124,25 +113,36 @@ private:
 class image_texture : public text {
 public:
     __device__ image_texture() {}
-    __device__ image_texture(uint8_t* buffer, int a, int b)
-        : _data(buffer), _nx(a), _ny(b) {}
-    __device__ virtual inline vec3 value(float u, float v, const vec3& p) const override;
-private:
-    uint8_t* _data;
-    int _nx = 0;
-    int _ny = 0;
-};
+    __device__ image_texture(float* buffer, int width, int height)
+        : _data(buffer), _width(width), _height(height) {}
+    __device__ virtual inline vec3 value(float u, float v, const vec3& p) const override {
+        //get_sphere_uv(p, u, v);
+        int i = u * _width;
+        int j = (1 - v) * _height - 0.001;
+        if (i < 0) i = 0;
+        if (j < 0) j = 0;
+        if (i > _width - 1) i = _width - 1;
+        if (j > _height - 1) j = _height - 1;
 
-__device__ inline vec3
-image_texture::value(float u, float v, const vec3& p) const {
-    int i = u * _nx;
-    int j = (1 - v) * _ny - 0.001;
-    if (i < 0) i = 0;
-    if (j < 0) j = 0;
-    if (i > _nx - 1) i = _nx - 1;
-    if (j > _ny - 1) j = _ny - 1;
-    float r = int(_data[3 * i + 3 * _nx * j]) / 255.0;
-    float g = int(_data[3 * i + 3 * _nx * j + 1]) / 255.0;
-    float b = int(_data[3 * i + 3 * _nx * j + 2]) / 255.0;
-    return vec3(r, g, b);
-}
+        int index = utils::XY(i, j, _width);
+        float r = _data[index * 3 + 0];
+        float g = _data[index * 3 + 1];
+        float b = _data[index * 3 + 2];
+
+        return vec3(r, g, b);
+        /*if (p.x() > 1) {
+            return vec3(1, 0, 0);
+        }
+        if (p.y() > 0.45) {
+            return vec3(0, 0, 0);
+        }
+        if (p.y() < -0.3) {
+            return vec3(0, 0, 0);
+        }
+        return vec3(1, 1, 1);*/
+    }
+private:
+    float* _data;
+    int _width = 0;
+    int _height = 0;
+};

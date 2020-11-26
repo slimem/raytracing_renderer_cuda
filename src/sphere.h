@@ -18,9 +18,12 @@ public:
     }
 
 private:
+
+    __device__ static constexpr void get_sphere_uv(const vec3& p, float& u, float& v);
+
     vec3 _c;
     float _r = 0.f;
-    const material* _m = nullptr;
+    const material* _m = nullptr; // change to shaed pointer
 };
 
 class moving_sphere : public hitable_object {
@@ -51,8 +54,33 @@ private:
     vec3 _c0, _c1;
     float _t0, _t1;
     float _r;
-    const material* _m = nullptr;
+    const material* _m = nullptr; // change to a shared ptr
 };
+
+__device__ void constexpr
+sphere::get_sphere_uv(const vec3& p, float& u, float& v) {
+    // how to map point coordinates on a sphere to u v coordinates
+    // - p: is a point on the sphere of radius one (centered at origin)
+    //      first I had a bug while mapping spheres where I used P as a
+    //      global coordinates. P needs to be on the sphere and normalized
+    //      with the sphere itself so the size of the sphere does not change
+    //      while transforming P coordinates to u v coordinates
+    // - u: [0,1] project X and Z value (from -1 to -1) around Y axis
+    // - v: [0,1] maps to Y value
+    // some value examples:
+    // (1   0   0) => (0.5  0.5)
+    // (0   1   0) => (0.5  1.0)
+    // (0   0   1) => (0.25 0.5)
+    // (-1  0   0) => (0    0.5)
+    // (0  -1   0) => (0.5  0  )
+    // (0   0  -1) => (0.75 0.5)
+
+    float phi = atan2f(p.z(), p.x());
+    float theta = asinf(p.y());
+    u = 1 - (phi + M_PI) / (2 * M_PI);
+    v = (theta + M_PI_2) / M_PI;
+}
+
 
 __device__ bool
 sphere::hit(const ray& r, float tmin, float tmax, hit_record& hrec) {
@@ -63,44 +91,44 @@ sphere::hit(const ray& r, float tmin, float tmax, hit_record& hrec) {
     // 3 - t*t*dot(B,​ B)​ + 2*t*dot(B,A​-C​) + dot(A-C,A​-C​) - R*R = 0
     // we solve it as a 2nd degree polynomial with delta = b^2 - 4*a*c
     float a = vec3::dot(r.direction(), r.direction());
-    float b = vec3::dot(oc, r.direction());
+    float b2 = vec3::dot(oc, r.direction());
     float c = vec3::dot(oc, oc) - _r * _r;
-    float delta = b * b - a * c;
+    float delta = b2 * b2 - a * c;
 
-    if (delta > 0) {
-        // delta is strictly positive, we have two hit points
-        // t is the parameter that gives the point of intersection
-        // between the ray and the sphere
-        // TODO: use __fsqrt_rz for sqrt and profile!!
-        float t = (-b - sqrt(delta)) / a;
-        if (t < tmax && t > tmin) {
-            hrec.set_t(t);
-            hrec.set_p(r.point_at_parameter(t));
-            // Remember: sphere normal is intersection_p - center
-            // to get a normalized vector, we devide by its magnitude which is
-            // the sphere radius
-            hrec.set_n((hrec.p() - _c) / _r);
-            //printf(" --- CALCULATED NORMAL: %f,%f,%f\n", hrec.n().x(), hrec.n().y(), hrec.n().z());
-            hrec.set_h(hit_object_type::SPHERE);
+    if (delta < 0) {
+        return false;
+    }
 
-            hrec.set_m(_m);
-            //printf(" DID HIT\n");
-            return true;
-        }
-        // we use the same variable
-        t = (-b + sqrt(delta)) / a;
-        if (t < tmax && t > tmin) {
-            hrec.set_t(t);
-            hrec.set_p(r.point_at_parameter(t));
-            hrec.set_n((hrec.p() - _c) / _r);
-            hrec.set_h(hit_object_type::SPHERE);
-            hrec.set_m(_m);
-            //printf(" DID HIT\n");
-            return true;
+    // delta is strictly positive, we have two hit points
+    // root is the point of intersection between the ray and the sphere
+    // TODO: use __fsqrt_rz for sqrt and profile!!
+    float deltaSqrt = sqrt(delta);
+    float root = (-b2 - deltaSqrt) / a;
+
+    // pick nearest root
+    if ((root < tmin) || (root > tmax)) {
+        root = (-b2 + deltaSqrt) / a;
+        if ((root < tmin) || (root > tmax)) {
+            return false;
         }
     }
-    //printf(" DID NOT HIT\n");
-    return false;
+
+    hrec.set_t(root);
+    hrec.set_p(r.point_at_parameter(root)); // intersection between ray and sphere
+    // Remember: sphere normal is intersection_p - center
+    // to get a normalized vector, we devide by its magnitude which is
+    // the sphere radius
+    vec3 out_normal = (hrec.p() - _c) / _r;
+    float u, v; // texture coordinates
+    hrec.set_n(out_normal);
+    get_sphere_uv(out_normal, u, v);
+    hrec.set_u(u);
+    hrec.set_v(v);
+    //printf(" --- CALCULATED NORMAL: %f,%f,%f\n", hrec.n().x(), hrec.n().y(), hrec.n().z());
+    hrec.set_h(hit_object_type::SPHERE);
+    hrec.set_m(_m);
+    //printf(" DID HIT\n");
+    return true;
 }
 
 __device__ bool

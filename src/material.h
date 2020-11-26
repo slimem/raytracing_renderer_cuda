@@ -91,7 +91,7 @@ lambertian::scatter(const ray& rin, ray& rout,
     // select a random vector at the hit point
     vec3 target = hrec.p() + hrec.n() + utils::random_point_unit_sphere(rstate);
     rout = ray(hrec.p(), target - hrec.p(), rin.t());
-    attenuation = _albedo->value(0, 0, hrec.p());
+    attenuation = _albedo->value(hrec.u(), hrec.v(), hrec.p());
     return true;
 }
 

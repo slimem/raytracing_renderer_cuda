@@ -13,11 +13,11 @@ The project will be to turn the renderer into a backend server:\
 9 - Profit
 
 ## Current state
-Now the renderer can generate procedural textures using perlin noise (wood, marble and turbulance).\
-I am currently working on supporing image textures.
+Now the renderer can generate procedural textures using perlin noise (wood, marble and turbulance) and use uv image textures that are currently stored in global memory (use texture memory in the future).\
+Currently, I'm working on replacing the constant world color with a HDR image (projected on a sphere).
 ### Last render
-Balls! with emitter, dielectric, lambertian, wood texture and metal materials with defocus and motion blur (1200x600 image size, 500 samples per pixel, render time 1190.2ms)
-![render](renders/marble2.jpg)
+Balls! with emitter, dielectric, lambertian, image texture and metal materials with defocus and motion blur (1200x600 image size, 500 samples per pixel, render time 13821.50ms)
+![render](renders/earth.jpg)
 You can view previous renders under ./renders.
 ### Future Improvements
 #### How the project is organized

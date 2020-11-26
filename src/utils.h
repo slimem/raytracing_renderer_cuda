@@ -5,12 +5,12 @@
 class utils {
 public:
 
-    __host__ __device__ static constexpr int XY(int x, int y) {
+    __host__ __device__ static constexpr int XY(int x, int y, int width = WIDTH) {
 #ifdef __CUDA_ARCH__
         // __fmaf_rz(x, y, z) returns x * y + z
-        return __fmaf_rz(y, WIDTH, x);
+        return __fmaf_rz(y, width, x);
 #else
-        return y * WIDTH + x;
+        return y * width + x;
 #endif
     }
 
@@ -53,6 +53,9 @@ public:
 
     template<typename T, typename V>
     __device__ static size_t seq_partition(T& v, int low, int high, bool(*f)(V, V));
+
+    template<typename T>
+    __host__ static void unpack_rgb_to_rgba(T* rgba, const T* rgb, const size_t n);
 };
 
 __device__ vec3
@@ -265,5 +268,19 @@ utils::it_qsort(T& v, int low, int high, bool(*f)(V, V)) {
             stack[++top] = pi + 1;
             stack[++top] = high;
         }
+    }
+}
+
+template<typename T>
+__host__ void
+utils::unpack_rgb_to_rgba(T* rgba, const T* rgb, const size_t size) {
+    if (size == 0) {
+        return;
+    }
+    for (int i = size; --i; rgba += 4, rgb += 3) {
+        *(uint32_t*)(void*)rgba = *(const uint32_t*)(const void*)rgb;
+    }
+    for (int j = 0; j < 3; ++j) {
+        rgba[j] = rgb[j];
     }
 }

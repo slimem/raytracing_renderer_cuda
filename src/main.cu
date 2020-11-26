@@ -12,7 +12,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "libs/stb/stb_image_write.h"
 
-#define SAMPLES_PER_PIXEL 100
+#define SAMPLES_PER_PIXEL 500
 
 // remember, the # converts the definition to a char*
 #define checkCudaErrors(val) check_cuda( (val), #val, __FILE__, __LINE__)
@@ -26,30 +26,8 @@ inline void check_cuda(cudaError_t errcode, char const* const func, const char* 
     }
 }
 
-texture<float, 2, cudaReadModeElementType> tex;
+//texture<float, 2, cudaReadModeElementType> tex;
 constexpr char imagePath[] = "textures/earth.jpg";
-
-__global__ void transformKernel(float* outputData,
-    int width,
-    int height,
-    float theta)
-{
-    // calculate normalized texture coordinates
-    unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
-    unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
-
-    float u = (float)x - (float)width / 2;
-    float v = (float)y - (float)height / 2;
-    float tu = u * cosf(theta) - v * sinf(theta);
-    float tv = v * cosf(theta) + u * sinf(theta);
-
-    tu /= (float)width;
-    tv /= (float)height;
-
-    // read from texture and write to global memory
-    outputData[y * width + x] = tex2D(tex, tu + 0.5f, tv + 0.5f);
-}
-
 
 __device__ vec3 color(const ray& r, hitable_list** scene, curandState* rstate) {
 
@@ -152,7 +130,7 @@ __global__ void render(vec3* frameBuffer, int width, int height,
 
 // TODO: check for array boundary
 __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
-    camera** cam, curandState* state) {
+    camera** cam, curandState* state, float* textureBuffer) {
     if (threadIdx.x == 0 && blockIdx.x == 0) { // only call once
         // sphere 1
         objects[0] = new sphere(
@@ -199,14 +177,15 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
         objects[1]->set_id(1);*/
 
 
-        //text* im_text = new image_texture(nullptr, 200, 300);
+        text* im_text = new image_texture(textureBuffer, WIDTH, HEIGHT);
         //sphere 3
         objects[2] = new sphere(
             vec3(1, 0, -1),
             0.5,
             //new dielectric(1.5)
             //new lambertian(noise1)
-            new lambertian(new constant_texture(vec3(0.1, 0.2, 0.5)))
+            //new lambertian(new constant_texture(vec3(0.1, 0.2, 0.5)))
+            new lambertian(im_text)
             //new metal(vec3(1.f), 0.f)
             //new metal(vec3(1.f), 0.f)
             //new metal(vec3(0.075, 0.461, 0.559), 0.1f)
@@ -330,11 +309,27 @@ __global__ void free_scene(hitable_object** objects, hitable_list** scene, camer
 int main(int argc, char** argv) {
 
     // loading image to host
+    
+    // load image as uint8_t
+    //uint8_t* imgData = stbi_load(imagePath, &w, &h, &ch, 0);
+    //stbi_write_png("export.png", w, h, ch, imgData, w * ch);
+
+    // load image as float
     int w, h, ch;
-    uint8_t* imgData = stbi_load(imagePath, &w, &h, &ch, 0);
+    stbi_ldr_to_hdr_scale(1.0f);
+    stbi_ldr_to_hdr_gamma(1.0f);
+    float* imgData_h = stbi_loadf(imagePath, &w, &h, &ch, 0);
     std::cout << "Loaded image with " << w << "x" << h << " and " << ch << " channels\n";
-    stbi_write_png("export.png", w, h, ch, imgData, w * ch);
-    stbi_image_free(imgData);
+
+    float* imgData_d;
+    size_t imgSize = w * h * ch * sizeof(float);
+    // TODO: for now, store texture in global memory. In the future, use texture
+    checkCudaErrors(cudaMalloc((float**)&imgData_d, imgSize));
+    checkCudaErrors(cudaMemcpy(imgData_d, imgData_h, imgSize, cudaMemcpyHostToDevice));
+    stbi_image_free(imgData_h);
+   
+    //stbi_write_png("export2.png", w, h, ch, imgData, w * ch);
+    //stbi_image_free(imgData);
 
     std::cout << "Rendering a " << WIDTH << "x" << HEIGHT << " image ";
     std::cout << "(" << SAMPLES_PER_PIXEL << " samples per pixel) ";
@@ -360,7 +355,7 @@ int main(int argc, char** argv) {
     checkCudaErrors(cudaMalloc((void**)&camera_d, sizeof(camera*)));
 
     // remember, construction is done in 1 block, 1 thread
-    populate_scene<<<1, 1>>> (hitableObjects_d, scene_d, camera_d, rand_state_d);
+    populate_scene<<<1, 1>>> (hitableObjects_d, scene_d, camera_d, rand_state_d, imgData_d);
     checkCudaErrors(cudaGetLastError());
     checkCudaErrors(cudaDeviceSynchronize());
 
@@ -422,6 +417,7 @@ int main(int argc, char** argv) {
             imgBuff[rev_index * 3 + 2] = int(255.999f * b) & 255;
         }
     }
+
     //stbi_write_png("render.png", WIDTH, HEIGHT, 3, imgBuff, WIDTH * 3);
     stbi_write_jpg("render.jpg", WIDTH, HEIGHT, 3, imgBuff, 100);
     std::free(imgBuff);
@@ -436,6 +432,8 @@ int main(int argc, char** argv) {
     checkCudaErrors(cudaFree(camera_d));
     checkCudaErrors(cudaFree(rand_state_d));
     checkCudaErrors(cudaFree(frameBuffer_u));
+
+    checkCudaErrors(cudaFree(imgData_d));
 
     // Documentation: Destroy all allocations and reset all state on the
     // current device in the current process
