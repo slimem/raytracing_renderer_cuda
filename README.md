@@ -17,7 +17,7 @@ Now the renderer can generate procedural textures using perlin noise (wood, marb
 Currently, I'm working on supporting more geometrical shapes (cubes, triangles) and basic transformation.
 ### Last render
 Balls! with emitter, dielectric, lambertian, image texture and metal materials with defocus and motion blur (1200x600 image size, 500 samples per pixel, render time 13821.50ms)
-![render](renders/earth.jpg)
+![render](renders/earth_emitter.jpg)
 You can view previous renders under ./renders.
 ### Future Improvements
 #### How the project is organized

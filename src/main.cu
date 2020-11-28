@@ -12,7 +12,10 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "libs/stb/stb_image_write.h"
 
-#define SAMPLES_PER_PIXEL 500
+#define SAMPLES_PER_PIXEL 100
+
+#define SCENE_BALLS
+//#define SCENE_HDR
 
 // remember, the # converts the definition to a char*
 #define checkCudaErrors(val) check_cuda( (val), #val, __FILE__, __LINE__)
@@ -27,7 +30,7 @@ inline void check_cuda(cudaError_t errcode, char const* const func, const char* 
 }
 
 //texture<float, 2, cudaReadModeElementType> tex;
-constexpr char imagePath[] = "textures/earth.jpg";
+
 
 __device__ vec3 color(const ray& r, hitable_list** scene, curandState* rstate) {
 
@@ -43,7 +46,7 @@ __device__ vec3 color(const ray& r, hitable_list** scene, curandState* rstate) {
             ray scattered;
             vec3 attenuation;
 
-            vec3 emit = hrec.m()->emit() + vec3(0.1,0.1,0.1); // bloomy effect
+            vec3 emit = hrec.m()->emit(hrec) + vec3(0.1,0.1,0.1); // bloomy effect
             if (hrec.m()->scatter(curr_r, scattered, hrec, attenuation, rstate)) {
                 curr_attenuation = emit + attenuation*curr_attenuation;
                 curr_r = scattered;
@@ -128,8 +131,61 @@ __global__ void render(vec3* frameBuffer, int width, int height,
 
 }
 
+#ifdef SCENE_HDR
+constexpr char imagePath[] = "textures/hdr.jpg";
+__global__ void populate_scene_hdr(hitable_object** objects, hitable_list** scene,
+    camera** cam, curandState* state, float* textureBuffer) {
+    if (threadIdx.x == 0 && blockIdx.x == 0) {
+        objects[0] = new sphere(
+            vec3(1., 0, -1),
+            1,
+            //new lambertian(new constant_texture(vec3(0.6, 0.1, 0.1)))
+            new metal(vec3(0.8, 0.2, 0.5), 0.05)
+        );
+        objects[0]->set_id(0);
+
+        text* hdr_texture = new image_texture(textureBuffer, WIDTH*2, HEIGHT*2);
+        //sphere 2
+        objects[1] = new sphere(
+            vec3(0, 0, 0),
+            10,
+            new emitter(hdr_texture)
+        );
+        objects[1]->set_id(1);
+
+        objects[2] = new sphere(
+            vec3(-1., 0, -1),
+            1,
+            new lambertian(new constant_texture(vec3(0.6, 0.1, 0.1)))
+        );
+        objects[2]->set_id(2);
+
+        *scene = new hitable_list(objects, nullptr, 3);
+        scene[0]->set_id(3);
+
+        vec3 lookfrom = vec3(-1, 2, 9);
+        vec3 lookat = vec3(0, 0, -1);
+        float dist_to_focus = (lookfrom - lookat).length();
+        float aperture = .25f;
+        *cam = new camera(
+            lookfrom, // lookfrom
+            lookat, // lookat
+            vec3(0, 1, 0),   // up
+            20.f,           // fov
+            float(WIDTH) / float(HEIGHT),
+            aperture,
+            dist_to_focus,
+            0,
+            0.2
+        );
+    }
+}
+#endif
+
 // TODO: check for array boundary
-__global__ void populate_scene(hitable_object** objects, hitable_list** scene,
+#ifdef SCENE_BALLS
+constexpr char imagePath[] = "textures/earth.jpg";
+__global__ void populate_scene_balls(hitable_object** objects, hitable_list** scene,
     camera** cam, curandState* state, float* textureBuffer) {
     if (threadIdx.x == 0 && blockIdx.x == 0) { // only call once
         // sphere 1
@@ -165,6 +221,7 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
         objects[1] = new sphere(
             vec3(0, -1000.5, 1),
             1000,
+            //10,
             new lambertian(noise1)
             //new lambertian(new constant_texture(vec3(0.1, 0.2, 0.5)))
         );
@@ -185,11 +242,11 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
             //new dielectric(1.5)
             //new lambertian(noise1)
             //new lambertian(new constant_texture(vec3(0.1, 0.2, 0.5)))
-            new lambertian(im_text)
+            new emitter(im_text,2),
             //new metal(vec3(1.f), 0.f)
             //new metal(vec3(1.f), 0.f)
             //new metal(vec3(0.075, 0.461, 0.559), 0.1f)
-        );
+        true);
         objects[2]->set_id(2);
 
         //sphere 4
@@ -235,7 +292,7 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
         objects[6]= new sphere(
             vec3(-1, 0, -1),
             0.5,
-            new emitter(vec3(0.5,1,0.5))
+            new emitter(new constant_texture(vec3(0.5,1,0.5)))
             //new dielectric(1.1, vec3(0.8,1.0,0.8))
         );
         objects[6]->set_id(6);
@@ -271,7 +328,7 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
         //}
 
         //vec3 lookfrom = vec3(-2, 1, 2) * 2;
-        vec3 lookfrom = vec3(-1, 2,5);
+        vec3 lookfrom = vec3(-1, 1,5); // revert to 2
         //THISvec3 lookfrom = vec3(5, 2, 3);
         //vec3 lookat = vec3(0, 0, -1);
         //vec3 lookat = vec3(-1, 0, -1); // redball
@@ -297,6 +354,8 @@ __global__ void populate_scene(hitable_object** objects, hitable_list** scene,
         //assert(0);
     }
 }
+#endif
+
 
 __global__ void free_scene(hitable_object** objects, hitable_list** scene, camera** cam) {
     // Objects already destoryed inside scene
@@ -350,12 +409,22 @@ int main(int argc, char** argv) {
     checkCudaErrors(cudaMallocManaged((void**)&frameBuffer_u, frameBufferSize));
 
     // allocate device memory
+#ifdef SCENE_BALLS
     checkCudaErrors(cudaMalloc((void**)&hitableObjects_d, 9 * sizeof(hitable_object*)));
+#endif
+#ifdef SCENE_HDR
+    checkCudaErrors(cudaMalloc((void**)&hitableObjects_d, 3 * sizeof(hitable_object*)));
+#endif
     checkCudaErrors(cudaMalloc((void**)&scene_d, sizeof(hitable_list*)));
     checkCudaErrors(cudaMalloc((void**)&camera_d, sizeof(camera*)));
 
     // remember, construction is done in 1 block, 1 thread
-    populate_scene<<<1, 1>>> (hitableObjects_d, scene_d, camera_d, rand_state_d, imgData_d);
+#ifdef SCENE_BALLS
+    populate_scene_balls<<<1, 1>>> (hitableObjects_d, scene_d, camera_d, rand_state_d, imgData_d);
+#endif
+#ifdef SCENE_HDR
+    populate_scene_hdr <<<1, 1 >>> (hitableObjects_d, scene_d, camera_d, rand_state_d, imgData_d);
+#endif
     checkCudaErrors(cudaGetLastError());
     checkCudaErrors(cudaDeviceSynchronize());
 

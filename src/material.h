@@ -11,12 +11,12 @@ public:
         const hit_record& hrec,
         vec3& attenuation,
         curandState* rstate) const = 0;
-    __device__ virtual vec3 emit() const {
+    __device__ virtual vec3 emit(const hit_record& hrec) const {
         return vec3(0.f, 0.f, 0.f);
     }
 };
 
-class emitter : public material {
+/*class emitter : public material {
 public:
     __device__ emitter(const vec3& intensity)
      : _intensity(intensity) {}
@@ -27,12 +27,32 @@ public:
         return false;
     }
     
-    __device__ virtual vec3 emit() const override {
+    __device__ virtual vec3 emit(const hit_record& hrec) const override {
         return _intensity;
     }
 
 private:
     vec3 _intensity;
+};*/
+
+class emitter : public material {
+public:
+    __device__ emitter(const text* tex, float intensity = 1.f)
+        : _texture(tex), _intensity(intensity) {}
+    __device__ virtual bool scatter(const ray& rin, ray& rout,
+        const hit_record& hrec,
+        vec3& attenuation,
+        curandState* rstate) const override {
+        return false;
+    }
+
+    __device__ virtual vec3 emit(const hit_record& hrec) const override {
+        return _texture->value(hrec.u(), hrec.v(), hrec.p()) * _intensity;
+    }
+
+private:
+    const text* _texture = nullptr;
+    float _intensity;
 };
 
 // create a diffuse material

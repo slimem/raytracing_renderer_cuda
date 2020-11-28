@@ -6,8 +6,8 @@
 class sphere : public hitable_object {
 public:
     __device__ sphere() {};
-    __device__ sphere(vec3 center, float radius, const material* mat)
-        : _c(center), _r(radius), _m(mat) {};
+    __device__ sphere(vec3 center, float radius, const material* mat, bool inside = false)
+        : _c(center), _r(radius), _m(mat), _inside(inside) {};
     __device__ virtual bool hit(const ray& r, float tmin, float tmax, hit_record& hrec) override;
     __device__ virtual bool bounding_box(float t0, float t1, AABB& box) const override;
     __device__ inline vec3 get_center() const { return _c; }
@@ -24,6 +24,7 @@ private:
     vec3 _c;
     float _r = 0.f;
     const material* _m = nullptr; // change to shaed pointer
+    bool _inside;
 };
 
 class moving_sphere : public hitable_object {
@@ -107,6 +108,7 @@ sphere::hit(const ray& r, float tmin, float tmax, hit_record& hrec) {
 
     // pick nearest root
     if ((root < tmin) || (root > tmax)) {
+        //if (_inside) return false;
         root = (-b2 + deltaSqrt) / a;
         if ((root < tmin) || (root > tmax)) {
             return false;
@@ -128,6 +130,12 @@ sphere::hit(const ray& r, float tmin, float tmax, hit_record& hrec) {
     hrec.set_h(hit_object_type::SPHERE);
     hrec.set_m(_m);
     //printf(" DID HIT\n");
+    //if (_inside) {
+        //return false
+        //if (vec3::dot(out_normal, r.direction()) < 1) return false;
+        //if (vec3::dot(out_normal, r.direction()) < 1) return false;
+        //if (vec3::dot(out_normal, r.direction()) < 0) return false;
+    //}
     return true;
 }
 
