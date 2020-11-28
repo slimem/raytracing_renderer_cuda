@@ -16,7 +16,7 @@ The project will be to turn the renderer into a backend server:\
 Now the renderer can generate procedural textures using perlin noise (wood, marble and turbulance) and use uv image textures that are currently stored in global memory (use texture memory in the future).\
 Currently, I'm working on supporting more geometrical shapes (cubes, triangles) and basic transformation.
 ### Last render
-Balls! with emitter, dielectric, lambertian, image texture and metal materials with defocus and motion blur (1200x600 image size, 500 samples per pixel, render time 13821.50ms)
+Balls! with emitter, dielectric, lambertian, image texture and metal materials with defocus and motion blur (1200x600 image size, 1000 samples per pixel, render time 1661.50ms)
 ![render](renders/earth_emitter.jpg)
 You can view previous renders under ./renders.
 ### Future Improvements
