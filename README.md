@@ -14,7 +14,7 @@ The project will be to turn the renderer into a backend server:\
 
 ## Current state
 Now the renderer can generate procedural textures using perlin noise (wood, marble and turbulance) and use uv image textures that are currently stored in global memory (use texture memory in the future).\
-Currently, I'm working on supporting more geometrical shapes (cubes, triangles) and basic transformation.
+Currently, I'm working on supporting more geometrical shapes (cubes, triangles) and basic transformation. This can be done by either using an existing .obj file loader, or writing my own.
 ### Last render
 Balls! with emitter, dielectric, lambertian, image texture and metal materials with defocus and motion blur (1200x600 image size, 100 samples per pixel, render time 1661.50ms)
 ![render](renders/earth_emitter.jpg)
@@ -24,6 +24,8 @@ You can view previous renders under ./renders.
 For now, the render is one **.cu** file and multiple header files with multiple classes each so it's easier to compile and debug. Once I start developing the server part with asio, I will split every .h file into a **.cu** and **.cuh**.
 #### A faster BVH
 Currently bvh is called by each thread, and does an initial iterative dfs if the ray hits its initial bounding box (using global memory). Since bounding boxes are read-only, can be computed before starting the main rendering kernel and memory access is localized (it's a dfs), It would be better to use read-only texture memory in the future.
+#### An interactive GUI with Qt
+Currently the binary only generates an image render for a hardcoded scene. This can be improved to rendering an image to a GUI interface where the user can interact by rotating, moving and zooming.
 
 ## Requirements
 **NVIDIA CUDA toolkit** and a CUDA-capable device are required to build and run the renderer.
