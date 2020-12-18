@@ -6,11 +6,9 @@ The project will be to turn the renderer into a backend server:\
 2 - Render a simple scene with no materials. The rendering result will be a jpeg or ppm image\
 3 - Support texture projection.\
 4 - Add more shapes and materials, (use basic materials, maybe support .mdl format in the future?)\
-5 - Support loading .obj file types\
-6 - Use a json file that describes the scene as input.
+5 - Support loading .obj file types with texture mapping\
+6 - Use a json file that describes the scene as input.\
 7 - A aws cloud based solution where the client draws a scene in a web browser (using THREE or webGL) and sends the json file to the server (aws ec2 that supports cuda)... maybe the server will be based on **asio**, and maybe use a REST API otherwise I will develop an API on my own.\
-8 - ?? \
-9 - Profit
 
 ## Current state
 Now the renderer can generate procedural textures using perlin noise (wood, marble and turbulance) and use uv image textures that are currently stored in global memory (use texture memory in the future).\
@@ -26,6 +24,10 @@ For now, the render is one **.cu** file and multiple header files with multiple 
 Currently bvh is called by each thread, and does an initial iterative dfs if the ray hits its initial bounding box (using global memory). Since bounding boxes are read-only, can be computed before starting the main rendering kernel and memory access is localized (it's a dfs), It would be better to use read-only texture memory in the future.
 #### An interactive GUI with Qt
 Currently the binary only generates an image render for a hardcoded scene. This can be improved to rendering an image to a GUI interface where the user can interact by rotating, moving and zooming.
+#### Improve Sampling on emitter objects
+Currently, the samples per pixel are evenly distributed which does not apply well to scenes with a lot of light bounces (with emitters) so sampling should be adapted to emissive materials.
+#### Support Normal/emissive Textures
+Now Only diffuse textures are supported. This can be improved by updating the image texture material to accept more image textures to be applied to normal, diffuse and so on.
 
 ## Requirements
 **NVIDIA CUDA toolkit** and a CUDA-capable device are required to build and run the renderer.
